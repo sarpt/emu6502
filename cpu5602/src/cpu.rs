@@ -1,11 +1,9 @@
-
 use crate::memory::Memory;
 
 use super::consts::{Word, Byte};
 
 type Instruction = Byte;
 
-const MAX_ADDRESS: usize = 65535;
 const INSTRUCTION_LDA_IM: Byte = 0xA9;
 const INSTRUCTION_LDA_ZP: Byte = 0xA5;
 const INSTRUCTION_LDA_ZPX: Byte = 0xB5;
@@ -37,7 +35,6 @@ impl ProcessorStatus {
     }
 
     fn set_flag(&mut self, flag: Flags, value_set: bool) {
-        // this should not finish successfully when value bigger than 7 is passed
         let shift: u8 = flag as u8;
         if value_set {
             self.flags |= 1 << shift;
@@ -81,28 +78,28 @@ impl CPU {
         self.index_register_y = 0;
     }
 
-    fn access_memory(&mut self, addr: Word, memory: &Memory) -> Byte {
+    fn access_memory<T: Memory>(&mut self, addr: Word, memory: &T) -> Byte {
         let data = memory[addr];
         self.cycle += 1;
 
         return data;
     }
 
-    fn fetch_byte(&mut self, memory: &Memory) -> Byte {
+    fn fetch_byte<T: Memory>(&mut self, memory: &T) -> Byte {
         let data = self.access_memory(self.program_counter, memory);
         self.program_counter = self.program_counter.wrapping_add(1);
 
         return data;
     }
 
-    fn fetch_word(&mut self, memory: &Memory) -> Word {
+    fn fetch_word<T: Memory>(&mut self, memory: &T) -> Word {
         let msb: Word = self.fetch_byte(memory).into();
         let lsb: Word = self.fetch_byte(memory).into();
 
         return (lsb << 8) | msb;
     }
 
-    fn fetch_instruction(&mut self, memory: &Memory) -> Instruction {
+    fn fetch_instruction<T: Memory>(&mut self, memory: &T) -> Instruction {
         return self.fetch_byte(memory);
     }
 
@@ -119,29 +116,21 @@ impl CPU {
         return res;
     }
 
-    fn sum_with_y(&mut self, val: Byte) -> Byte {
-        let reg_x = self.index_register_x;
-        let res = val.wrapping_add(reg_x);
-        self.cycle += 1;
-
-        return res;
-    }
-
-    fn push_byte_to_stack(&mut self, val: Byte, memory: &mut Memory) {
+    fn push_byte_to_stack<T: Memory>(&mut self, val: Byte, memory: &mut T) {
         let stack_addr: Word = 0x0100 | (self.stack_pointer as u16);
         memory[stack_addr] = val;
         self.stack_pointer += 1;
         self.cycle += 1;
     }
 
-    fn push_word_to_stack(&mut self, val: Word, memory: &mut Memory) {
+    fn push_word_to_stack<T: Memory>(&mut self, val: Word, memory: &mut T) {
         let msb: u8 = (val) as u8;
         let lsb: u8 = (val >> 8) as u8; // change to "to_le_bytes"
         self.push_byte_to_stack(msb, memory);
         self.push_byte_to_stack(lsb, memory);
     }
 
-    pub fn execute(&mut self, cycles: u64, memory: &mut Memory) -> u64 {
+    pub fn execute<T: Memory>(&mut self, cycles: u64, memory: &mut T) -> u64 {
         let cycles_before_execution = self.cycle;
         let stop_cycle = cycles_before_execution + cycles;
 
