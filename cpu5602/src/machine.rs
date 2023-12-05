@@ -9,13 +9,10 @@ pub struct Machine {
 
 impl Machine {
     pub fn new() -> Self {
-        let mut machine = Machine{
+        return Machine{
             memory: VecMemory::new(),
             cpu: CPU::new()
         };
-        machine.cpu.reset();
-
-        return machine;
     }
 
     pub fn execute_cycles(&mut self, program: &[(u16, u8)], cycles: u64) {

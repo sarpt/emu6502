@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 use crate::memory::Memory;
 
 use super::consts::{Word, Byte};
@@ -59,7 +61,7 @@ impl CPU {
     pub fn new() -> Self {
         return CPU {
             cycle: 0,
-            program_counter: 0,
+            program_counter: 0xFFFC,
             stack_pointer: 0,
             accumulator: 0,
             index_register_x: 0,
@@ -78,28 +80,28 @@ impl CPU {
         self.index_register_y = 0;
     }
 
-    fn access_memory<T: Memory>(&mut self, addr: Word, memory: &T) -> Byte {
+    fn access_memory<T: Index<Word, Output = Byte>>(&mut self, addr: Word, memory: &T) -> Byte {
         let data = memory[addr];
         self.cycle += 1;
 
         return data;
     }
 
-    fn fetch_byte<T: Memory>(&mut self, memory: &T) -> Byte {
+    fn fetch_byte<T: Index<Word, Output = Byte>>(&mut self, memory: &T) -> Byte {
         let data = self.access_memory(self.program_counter, memory);
         self.program_counter = self.program_counter.wrapping_add(1);
 
         return data;
     }
 
-    fn fetch_word<T: Memory>(&mut self, memory: &T) -> Word {
+    fn fetch_word<T: Index<Word, Output = Byte>>(&mut self, memory: &T) -> Word {
         let msb: Word = self.fetch_byte(memory).into();
         let lsb: Word = self.fetch_byte(memory).into();
 
         return (lsb << 8) | msb;
     }
 
-    fn fetch_instruction<T: Memory>(&mut self, memory: &T) -> Instruction {
+    fn fetch_instruction<T: Index<Word, Output = Byte>>(&mut self, memory: &T) -> Instruction {
         return self.fetch_byte(memory);
     }
 
@@ -116,14 +118,14 @@ impl CPU {
         return res;
     }
 
-    fn push_byte_to_stack<T: Memory>(&mut self, val: Byte, memory: &mut T) {
+    fn push_byte_to_stack<T: IndexMut<Word, Output = Byte>>(&mut self, val: Byte, memory: &mut T) {
         let stack_addr: Word = 0x0100 | (self.stack_pointer as u16);
         memory[stack_addr] = val;
         self.stack_pointer += 1;
         self.cycle += 1;
     }
 
-    fn push_word_to_stack<T: Memory>(&mut self, val: Word, memory: &mut T) {
+    fn push_word_to_stack<T: IndexMut<Word, Output = Byte>>(&mut self, val: Word, memory: &mut T) {
         let msb: u8 = (val) as u8;
         let lsb: u8 = (val >> 8) as u8; // change to "to_le_bytes"
         self.push_byte_to_stack(msb, memory);
@@ -172,3 +174,6 @@ impl CPU {
         return stop_cycle;
     }
 }
+
+#[cfg(test)]
+mod tests;

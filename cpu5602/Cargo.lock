@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "ccpu502"
+name = "cpu5602"
 version = "0.1.0"
