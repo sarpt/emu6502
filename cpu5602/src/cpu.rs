@@ -59,15 +59,7 @@ pub struct CPU {
 
 impl CPU {
     pub fn new() -> Self {
-        return CPU {
-            cycle: 0,
-            program_counter: 0xFFFC,
-            stack_pointer: 0,
-            accumulator: 0,
-            index_register_x: 0,
-            index_register_y: 0,
-            processor_status: ProcessorStatus { flags: 0 }
-        };
+        return CPU::default();
     }
 
     pub fn reset(&mut self) -> () {
@@ -172,6 +164,20 @@ impl CPU {
         }
 
         return stop_cycle;
+    }
+}
+
+impl Default for CPU {
+    fn default() -> Self {
+        return CPU {
+            cycle: 0,
+            program_counter: 0xFFFC,
+            stack_pointer: 0,
+            accumulator: 0,
+            index_register_x: 0,
+            index_register_y: 0,
+            processor_status: ProcessorStatus { flags: 0 }
+        };
     }
 }
 
