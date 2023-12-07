@@ -99,7 +99,7 @@ impl CPU {
 
     fn set_load_accumulator_status(&mut self) -> () {
         self.processor_status.set_zero_flag(self.accumulator == 0);
-        self.processor_status.set_negative_flag(self.accumulator & 0b10000000 > 1);
+        self.processor_status.set_negative_flag((self.accumulator & 0b10000000) > 1);
     }
 
     fn sum_with_x(&mut self, val: Byte) -> Byte {

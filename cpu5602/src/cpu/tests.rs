@@ -265,7 +265,6 @@ mod push_word_to_stack {
 
         let mut uut = CPU::new();
         uut.stack_pointer = 0x0002;
-
         assert_eq!(uut.cycle, 0);
 
         let value: u16 = 0x56DF;
@@ -273,5 +272,93 @@ mod push_word_to_stack {
         
         assert_eq!(uut.cycle, 2);
         assert_eq!(uut.stack_pointer, 0x0004);
+    }
+}
+
+#[cfg(test)]
+mod sum_with_x {
+    use crate::cpu::CPU;
+
+    #[test]
+    fn should_sum_provided_value_with_x_register_contents() {
+        let mut uut = CPU::new();
+        uut.index_register_x = 0x02;
+
+        let value: u8 = 0x03;
+        let result = uut.sum_with_x(value);
+        
+        assert_eq!(result, 0x05);
+    }
+
+    #[test]
+    fn sum_should_wrap_around_byte() {
+        let mut uut = CPU::new();
+        uut.index_register_x = 0xFF;
+
+        let value: u8 = 0x03;
+        let result = uut.sum_with_x(value);
+        
+        assert_eq!(result, 0x02);
+    }
+
+    #[test]
+    fn should_increase_cycle_counter_by_one() {
+        let mut uut = CPU::new();
+        uut.index_register_x = 0xFF;
+        assert_eq!(uut.cycle, 0);
+
+        let value: u8 = 0x03;
+        uut.sum_with_x(value);
+        
+        assert_eq!(uut.cycle, 1);
+    }
+}
+
+#[cfg(test)]
+mod set_load_accumulator_status {
+    use crate::cpu::CPU;
+
+    #[test]
+    fn should_set_zero_flag_on_processor_status_when_accumulator_is_zero() {
+        let mut uut = CPU::new();
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0x00;
+
+        uut.set_load_accumulator_status();
+        
+        assert_eq!(uut.processor_status.flags, 0b00000010);
+    }
+
+    #[test]
+    fn should_unset_zero_flag_on_processor_status_when_accumulator_is_not_zero() {
+        let mut uut = CPU::new();
+        uut.processor_status.flags = 0b11111111;
+        uut.accumulator = 0xFF;
+
+        uut.set_load_accumulator_status();
+        
+        assert_eq!(uut.processor_status.flags, 0b11111101);
+    }
+
+    #[test]
+    fn should_set_negative_flag_on_processor_status_when_accumulator_has_bit_7_set() {
+        let mut uut = CPU::new();
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0x80;
+
+        uut.set_load_accumulator_status();
+        
+        assert_eq!(uut.processor_status.flags, 0b10000000);
+    }
+
+    #[test]
+    fn should_unset_negative_flag_on_processor_status_when_accumulator_has_bit_7_unset() {
+        let mut uut = CPU::new();
+        uut.processor_status.flags = 0b11111111;
+        uut.accumulator = 0x00;
+
+        uut.set_load_accumulator_status();
+        
+        assert_eq!(uut.processor_status.flags, 0b01111111);
     }
 }
