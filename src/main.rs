@@ -1,4 +1,4 @@
-use cpu5602::machine;
+use cpu6502::machine;
 
 fn main() {
     let program: &[(u16, u8)] = &[

@@ -3,12 +3,12 @@
 version = 3
 
 [[package]]
-name = "cpu5602"
+name = "cpu6502"
 version = "0.1.0"
 
 [[package]]
 name = "emu6502"
 version = "0.1.0"
 dependencies = [
- "cpu5602",
+ "cpu6502",
 ]
