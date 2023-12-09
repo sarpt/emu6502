@@ -11,6 +11,7 @@ const INSTRUCTION_LDA_ZP: Byte = 0xA5;
 const INSTRUCTION_LDA_ZPX: Byte = 0xB5;
 const INSTRUCTION_LDA_A: Byte = 0xAD;
 const INSTRUCTION_JMP_A: Byte = 0x4C;
+const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
 
 enum Flags {
@@ -97,10 +98,10 @@ impl CPU {
     }
 
     fn fetch_word(&mut self) -> Word {
-        let msb: Word = self.fetch_byte().into();
         let lsb: Word = self.fetch_byte().into();
+        let msb: Word = self.fetch_byte().into();
 
-        return (lsb << 8) | msb;
+        return (msb << 8) | lsb;
     }
 
     fn fetch_instruction(&mut self) -> Instruction {
@@ -108,6 +109,11 @@ impl CPU {
     }
 
     fn fetch_address(&mut self) -> Word {
+        return self.fetch_word();
+    }
+
+    fn fetch_address_from(&mut self, addr: Word) -> Word {
+        self.program_counter = addr;
         return self.fetch_word();
     }
 
@@ -175,6 +181,9 @@ impl CPU {
                 },
                 INSTRUCTION_JMP_A => {
                     jmp_a(self);
+                },
+                INSTRUCTION_JMP_IN => {
+                    jmp_in(self);
                 },
                 _ => ()
             };

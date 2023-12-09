@@ -218,3 +218,41 @@ mod jmp_a {
         assert_eq!(cpu.cycle, 2);
     }
 }
+
+#[cfg(test)]
+mod jmp_in {
+    use crate::cpu::tests::MemoryMock;
+    use super::super::*;
+
+    #[test]
+    fn should_fetch_address_from_memory_pointed_by_program_counter_and_use_it_as_an_address_in_memory_pointing_to_address_to_put_into_program_counter() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+        cpu.program_counter = 0x00;
+
+        jmp_in(&mut cpu);
+
+        assert_eq!(cpu.program_counter, 0x0001);
+    }
+
+    #[test]
+    fn should_take_four_cycles() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+        cpu.program_counter = 0x00;
+        cpu.cycle = 0;
+
+        jmp_in(&mut cpu);
+
+        assert_eq!(cpu.cycle, 4);
+    }
+
+    #[test]
+    fn should_incorrectly_interpret_address_pointed_to_by_program_counter_and_take_lsb_from_correct_address_but_wrap_around_page_for_msb() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x00, 0x04, 0x00])));
+        cpu.program_counter = 0x00;
+
+        jmp_in(&mut cpu);
+
+        assert_eq!(cpu.program_counter, 0xFF00);
+    }
+
+}
