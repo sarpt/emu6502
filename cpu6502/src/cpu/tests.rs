@@ -170,6 +170,104 @@ mod fetch_word {
 }
 
 #[cfg(test)]
+mod fetch_address {
+    use crate::cpu::CPU;
+    use super::MemoryMock;
+
+    #[test]
+    fn should_return_an_address_pointed_by_a_program_counter_in_little_endian() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.program_counter = 0x00;
+
+        let result = uut.fetch_address();
+        
+        assert_eq!(result, 0xFF03);
+    }
+
+    #[test]
+    fn should_increase_cycle_counter_and_a_program_counter_twice() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.program_counter = 0x00;
+
+        assert_eq!(uut.cycle, 0);
+
+        uut.fetch_address();
+        
+        assert_eq!(uut.cycle, 2);
+        assert_eq!(uut.program_counter, 0x0002);
+    }
+}
+
+#[cfg(test)]
+mod fetch_zero_page_address {
+    use crate::cpu::CPU;
+    use super::MemoryMock;
+
+    #[test]
+    fn should_return_a_zero_page_address_pointed_by_a_program_counter_in_little_endian() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.program_counter = 0x00;
+
+        let result = uut.fetch_zero_page_address();
+        
+        assert_eq!(result, 0x003);
+    }
+
+    #[test]
+    fn should_increase_cycle_counter_and_a_program_counter_once() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.program_counter = 0x00;
+
+        assert_eq!(uut.cycle, 0);
+
+        uut.fetch_zero_page_address();
+        
+        assert_eq!(uut.cycle, 1);
+        assert_eq!(uut.program_counter, 0x0001);
+    }
+}
+
+#[cfg(test)]
+mod fetch_zero_page_with_x_offset {
+    use crate::cpu::CPU;
+    use super::MemoryMock;
+
+    #[test]
+    fn should_return_a_zero_page_address_pointed_by_a_program_counter_summed_with_index_register_x() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.index_register_x = 0x20;
+        uut.program_counter = 0x00;
+
+        let result = uut.fetch_zero_page_with_x_offset();
+        
+        assert_eq!(result, 0x0023);
+    }
+
+    #[test]
+    fn should_increase_cycle_counter_two_times() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.program_counter = 0x00;
+
+        assert_eq!(uut.cycle, 0);
+
+        uut.fetch_zero_page_with_x_offset();
+        
+        assert_eq!(uut.cycle, 2);
+    }
+
+    fn should_increase_program_counter_once() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF])));
+        uut.program_counter = 0x00;
+
+        assert_eq!(uut.cycle, 0);
+
+        uut.fetch_zero_page_with_x_offset();
+        
+        assert_eq!(uut.program_counter, 0x0001);
+    }
+}
+
+#[cfg(test)]
 mod fetch_instruction {
     use crate::cpu::CPU;
     use super::MemoryMock;

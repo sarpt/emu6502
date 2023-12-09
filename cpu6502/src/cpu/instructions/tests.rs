@@ -41,8 +41,8 @@ mod lda_zp {
     use super::super::*;
 
     #[test]
-    fn should_fetch_byte_from_address_stored_in_a_place_pointed_by_program_counter_into_accumulator() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0x45])));
+    fn should_fetch_byte_from_a_zero_page_address_stored_in_a_place_pointed_by_program_counter_into_accumulator() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0x00,0x45])));
         cpu.program_counter = 0x00;
 
         lda_zp(&mut cpu);
@@ -52,7 +52,7 @@ mod lda_zp {
 
     #[test]
     fn should_set_load_accumulator_processor_status() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0xFF])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0x00,0xFF])));
         cpu.program_counter = 0x00;
 
         lda_zp(&mut cpu);
@@ -61,7 +61,7 @@ mod lda_zp {
     }
 
     fn should_take_two_cycles() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0x05])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0x00,0x05])));
         cpu.program_counter = 0x00;
         cpu.cycle = 0;
 
@@ -115,6 +115,42 @@ mod lda_zpx {
         cpu.cycle = 0;
 
         lda_zpx(&mut cpu);
+
+        assert_eq!(cpu.cycle, 3);
+    }
+}
+
+#[cfg(test)]
+mod lda_a {
+    use crate::cpu::tests::MemoryMock;
+    use super::super::*;
+
+    #[test]
+    fn should_fetch_byte_from_an_absolute_address_stored_in_a_place_pointed_by_program_counter_into_accumulator() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0x45])));
+        cpu.program_counter = 0x00;
+
+        lda_a(&mut cpu);
+
+        assert_eq!(cpu.accumulator, 0x45);
+    }
+
+    #[test]
+    fn should_set_load_accumulator_processor_status() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0xFF])));
+        cpu.program_counter = 0x00;
+
+        lda_a(&mut cpu);
+
+        assert_eq!(cpu.processor_status.flags, 0b10000000);
+    }
+
+    fn should_take_three_cycles() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0x05])));
+        cpu.program_counter = 0x00;
+        cpu.cycle = 0;
+
+        lda_zp(&mut cpu);
 
         assert_eq!(cpu.cycle, 3);
     }

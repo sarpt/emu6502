@@ -107,6 +107,19 @@ impl CPU {
         return self.fetch_byte();
     }
 
+    fn fetch_address(&mut self) -> Word {
+        return self.fetch_word();
+    }
+
+    fn fetch_zero_page_address(&mut self) -> Word {
+        return self.fetch_byte().into();
+    }
+
+    fn fetch_zero_page_with_x_offset(&mut self) -> Word {
+        let zero_page_addr = self.fetch_byte();
+        return self.sum_with_x(zero_page_addr).into();
+    }
+
     fn set_load_accumulator_status(&mut self) -> () {
         self.processor_status.set_zero_flag(self.accumulator == 0);
         self.processor_status.set_negative_flag((self.accumulator & 0b10000000) > 1);
