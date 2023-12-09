@@ -1,18 +1,24 @@
 use std::ops::{Index, IndexMut};
 use crate::{consts::{Word, Byte}, memory::Memory};
 
-struct MemoryMock {
+pub struct MemoryMock {
     data: [u8; 512]
 }
-
 impl Memory for MemoryMock {}
-impl Default for MemoryMock {
-    fn default() -> Self {
+
+impl MemoryMock {
+    pub fn new(payload: &[u8]) -> Self {
         let mut mock = MemoryMock { data: [0;512] };
-        const DATA: [u8;5] = [0x44, 0x51, 0x88, 0x42, 0x99];
-        mock.data[..DATA.len()].copy_from_slice(&DATA);
+        mock.data[..payload.len()].copy_from_slice(payload);
 
         return mock;
+    }
+}
+
+impl Default for MemoryMock {
+    fn default() -> Self {
+        const DATA: [u8;5] = [0x44, 0x51, 0x88, 0x42, 0x99];
+        return MemoryMock::new(&DATA);
     }
 }
 

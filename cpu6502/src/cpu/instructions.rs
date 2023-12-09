@@ -34,3 +34,6 @@ pub fn jsr_a(cpu: &mut CPU) {
 pub fn jmp_a(cpu: &mut CPU) {
     cpu.program_counter = cpu.fetch_word();
 }
+
+#[cfg(test)]
+mod tests;
