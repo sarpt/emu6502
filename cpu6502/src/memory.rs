@@ -6,9 +6,7 @@ use std::ops::{Index, IndexMut};
 const MAX_MEMORY_KB: usize = 64 * 1024;
 
 pub trait Memory: IndexMut<Word, Output = Byte>
-    + Index<Word, Output = Byte>
-    + Index<Byte, Output = Byte>
-    + Index<usize, Output = Byte> {}
+    + Index<Word, Output = Byte> {}
 
 pub struct VecMemory {
     pub data: Vec<Byte>,
@@ -28,13 +26,6 @@ impl VecMemory {
 }
 
 impl Memory for VecMemory {}
-impl Index<usize> for VecMemory {
-    type Output = Byte;
-
-    fn index(&self, idx: usize) -> &Self::Output {
-        return &self.data[idx];
-    }
-}
 
 impl Index<Word> for VecMemory {
     type Output = Byte;
@@ -49,15 +40,6 @@ impl IndexMut<Word> for VecMemory {
     fn index_mut(&mut self, idx: Word) -> &mut Self::Output {
         let mem_address: usize = idx.into();
         return &mut self.data[mem_address];
-    }
-}
-
-impl Index<Byte> for VecMemory {
-    type Output = Byte;
-
-    fn index(&self, idx: Byte) -> &Self::Output {
-        let mem_address: usize = idx.into();
-        return &self.data[mem_address];
     }
 }
 

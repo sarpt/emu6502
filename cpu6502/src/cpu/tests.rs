@@ -1,10 +1,11 @@
 use std::ops::{Index, IndexMut};
-use crate::consts::{Word, Byte};
+use crate::{consts::{Word, Byte}, memory::Memory};
 
 struct MemoryMock {
     data: [u8; 512]
 }
 
+impl Memory for MemoryMock {}
 impl Default for MemoryMock {
     fn default() -> Self {
         let mut mock = MemoryMock { data: [0;512] };
@@ -33,11 +34,12 @@ impl IndexMut<Word> for MemoryMock {
 
 #[cfg(test)]
 mod new {
+    use super::MemoryMock;
     use super::super::*;
 
     #[test]
     fn should_be_in_reset_state_after_creation() {
-        let uut = CPU::new();
+        let uut = CPU::new(Box::new(MemoryMock::default()));
 
         assert_eq!(uut.accumulator, 0);
         assert_eq!(uut.cycle, 0);
@@ -51,11 +53,12 @@ mod new {
 
 #[cfg(test)]
 mod reset {
+    use super::MemoryMock;
     use super::super::*;
 
     #[test]
     fn should_set_program_counter_to_fffc_after_reset() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0xFFFF;
 
         uut.reset();
@@ -65,7 +68,7 @@ mod reset {
 
     #[test]
     fn should_set_negative_flag_in_processor_status_to_zero_after_reset() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b11111111;
 
         uut.reset();
@@ -84,23 +87,19 @@ mod access_memory {
 
     #[test]
     fn should_return_a_byte() {
-        let memory: MemoryMock = MemoryMock::default();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
 
-        let mut uut = CPU::new();
-
-        let result = uut.access_memory(ADDR, &memory);
+        let result = uut.access_memory(ADDR);
         
         assert_eq!(result, 0x42);
     }
 
     #[test]
     fn should_increase_cycle_counter() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         assert_eq!(uut.cycle, 0);
 
-        uut.access_memory(ADDR, &memory);
+        uut.access_memory(ADDR);
         
         assert_eq!(uut.cycle, 1);
     }
@@ -113,26 +112,22 @@ mod fetch_byte {
 
     #[test]
     fn should_return_a_byte_pointed_by_a_program_counter() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0x0001;
 
-        let result = uut.fetch_byte(&memory);
+        let result = uut.fetch_byte();
         
         assert_eq!(result, 0x51);
     }
 
     #[test]
     fn should_increase_cycle_counter_and_a_program_counter() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0x0001;
 
         assert_eq!(uut.cycle, 0);
 
-        uut.fetch_byte(&memory);
+        uut.fetch_byte();
         
         assert_eq!(uut.cycle, 1);
         assert_eq!(uut.program_counter, 0x0002);
@@ -146,26 +141,22 @@ mod fetch_word {
 
     #[test]
     fn should_return_a_word_pointed_by_a_program_counter_in_little_endian() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0x0001;
 
-        let result = uut.fetch_word(&memory);
+        let result = uut.fetch_word();
         
         assert_eq!(result, 0x8851);
     }
 
     #[test]
     fn should_increase_cycle_counter_and_a_program_counter_twice() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0x0001;
 
         assert_eq!(uut.cycle, 0);
 
-        uut.fetch_word(&memory);
+        uut.fetch_word();
         
         assert_eq!(uut.cycle, 2);
         assert_eq!(uut.program_counter, 0x0003);
@@ -179,26 +170,22 @@ mod fetch_instruction {
 
     #[test]
     fn should_return_an_instruction_pointed_by_a_program_counter() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0x0001;
 
-        let result = uut.fetch_instruction(&memory);
+        let result = uut.fetch_instruction();
         
         assert_eq!(result, 0x51);
     }
 
     #[test]
     fn should_increase_cycle_counter_and_a_program_counter() {
-        let memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.program_counter = 0x0001;
 
         assert_eq!(uut.cycle, 0);
 
-        uut.fetch_instruction(&memory);
+        uut.fetch_instruction();
         
         assert_eq!(uut.cycle, 1);
         assert_eq!(uut.program_counter, 0x0002);
@@ -212,28 +199,24 @@ mod push_byte_to_stack {
 
     #[test]
     fn should_push_a_byte_to_a_place_to_the_first_page_in_memory_pointed_by_a_stack_pointer() {
-        let mut memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.stack_pointer = 0x0002;
 
         let value: u8 = 0xDF;
-        uut.push_byte_to_stack(value, &mut memory);
+        uut.push_byte_to_stack(value);
         
-        assert_eq!(memory[0x0102], 0xDF);
+        assert_eq!(uut.memory[0x0102], 0xDF);
     }
 
     #[test]
     fn should_increase_cycle_counter_and_stack_pointer_by_one() {
-        let mut memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.stack_pointer = 0x0002;
 
         assert_eq!(uut.cycle, 0);
 
         let value: u8 = 0xDF;
-        uut.push_byte_to_stack(value, &mut memory);
+        uut.push_byte_to_stack(value);
         
         assert_eq!(uut.cycle, 1);
         assert_eq!(uut.stack_pointer, 0x0003);
@@ -247,28 +230,24 @@ mod push_word_to_stack {
 
     #[test]
     fn should_push_a_byte_to_a_place_to_the_first_page_in_memory_pointed_by_a_stack_pointer() {
-        let mut memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.stack_pointer = 0x0002;
 
         let value: u16 = 0x56DF;
-        uut.push_word_to_stack(value, &mut memory);
+        uut.push_word_to_stack(value);
         
-        assert_eq!(memory[0x0102], 0xDF);
-        assert_eq!(memory[0x0103], 0x56);
+        assert_eq!(uut.memory[0x0102], 0xDF);
+        assert_eq!(uut.memory[0x0103], 0x56);
     }
 
     #[test]
     fn should_increase_cycle_counter_and_stack_pointer_by_two() {
-        let mut memory: MemoryMock = MemoryMock::default();
-
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.stack_pointer = 0x0002;
         assert_eq!(uut.cycle, 0);
 
         let value: u16 = 0x56DF;
-        uut.push_word_to_stack(value, &mut memory);
+        uut.push_word_to_stack(value);
         
         assert_eq!(uut.cycle, 2);
         assert_eq!(uut.stack_pointer, 0x0004);
@@ -277,11 +256,12 @@ mod push_word_to_stack {
 
 #[cfg(test)]
 mod sum_with_x {
+    use super::MemoryMock;
     use crate::cpu::CPU;
 
     #[test]
     fn should_sum_provided_value_with_x_register_contents() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.index_register_x = 0x02;
 
         let value: u8 = 0x03;
@@ -292,7 +272,7 @@ mod sum_with_x {
 
     #[test]
     fn sum_should_wrap_around_byte() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.index_register_x = 0xFF;
 
         let value: u8 = 0x03;
@@ -303,7 +283,7 @@ mod sum_with_x {
 
     #[test]
     fn should_increase_cycle_counter_by_one() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.index_register_x = 0xFF;
         assert_eq!(uut.cycle, 0);
 
@@ -316,11 +296,12 @@ mod sum_with_x {
 
 #[cfg(test)]
 mod set_load_accumulator_status {
+    use super::MemoryMock;
     use crate::cpu::CPU;
 
     #[test]
     fn should_set_zero_flag_on_processor_status_when_accumulator_is_zero() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x00;
 
@@ -331,7 +312,7 @@ mod set_load_accumulator_status {
 
     #[test]
     fn should_unset_zero_flag_on_processor_status_when_accumulator_is_not_zero() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0xFF;
 
@@ -342,7 +323,7 @@ mod set_load_accumulator_status {
 
     #[test]
     fn should_set_negative_flag_on_processor_status_when_accumulator_has_bit_7_set() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x80;
 
@@ -353,7 +334,7 @@ mod set_load_accumulator_status {
 
     #[test]
     fn should_unset_negative_flag_on_processor_status_when_accumulator_has_bit_7_unset() {
-        let mut uut = CPU::new();
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0x00;
 

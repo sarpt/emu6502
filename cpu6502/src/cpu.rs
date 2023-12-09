@@ -1,8 +1,8 @@
-use std::ops::{Index, IndexMut};
-
+use self::instructions::*;
+use super::consts::{Word, Byte};
 use crate::memory::Memory;
 
-use super::consts::{Word, Byte};
+mod instructions;
 
 type Instruction = Byte;
 
@@ -55,11 +55,21 @@ pub struct CPU {
     index_register_x: Byte,
     index_register_y: Byte,
     processor_status: ProcessorStatus,
+    memory: Box<dyn Memory>
 }
 
 impl CPU {
-    pub fn new() -> Self {
-        return CPU::default();
+    pub fn new(memory: Box<dyn Memory>) -> Self {
+        return CPU {
+            cycle: 0,
+            program_counter: 0xFFFC,
+            stack_pointer: 0,
+            accumulator: 0,
+            index_register_x: 0,
+            index_register_y: 0,
+            processor_status: ProcessorStatus { flags: 0 },
+            memory: memory
+        };
     }
 
     pub fn reset(&mut self) -> () {
@@ -72,29 +82,29 @@ impl CPU {
         self.index_register_y = 0;
     }
 
-    fn access_memory<T: Index<Word, Output = Byte>>(&mut self, addr: Word, memory: &T) -> Byte {
-        let data = memory[addr];
+    fn access_memory(&mut self, addr: Word) -> Byte {
+        let data = self.memory[addr];
         self.cycle += 1;
 
         return data;
     }
 
-    fn fetch_byte<T: Index<Word, Output = Byte>>(&mut self, memory: &T) -> Byte {
-        let data = self.access_memory(self.program_counter, memory);
+    fn fetch_byte(&mut self) -> Byte {
+        let data = self.access_memory(self.program_counter);
         self.program_counter = self.program_counter.wrapping_add(1);
 
         return data;
     }
 
-    fn fetch_word<T: Index<Word, Output = Byte>>(&mut self, memory: &T) -> Word {
-        let msb: Word = self.fetch_byte(memory).into();
-        let lsb: Word = self.fetch_byte(memory).into();
+    fn fetch_word(&mut self) -> Word {
+        let msb: Word = self.fetch_byte().into();
+        let lsb: Word = self.fetch_byte().into();
 
         return (lsb << 8) | msb;
     }
 
-    fn fetch_instruction<T: Index<Word, Output = Byte>>(&mut self, memory: &T) -> Instruction {
-        return self.fetch_byte(memory);
+    fn fetch_instruction(&mut self) -> Instruction {
+        return self.fetch_byte();
     }
 
     fn set_load_accumulator_status(&mut self) -> () {
@@ -110,74 +120,54 @@ impl CPU {
         return res;
     }
 
-    fn push_byte_to_stack<T: IndexMut<Word, Output = Byte>>(&mut self, val: Byte, memory: &mut T) {
+    fn push_byte_to_stack(&mut self, val: Byte) {
         let stack_addr: Word = 0x0100 | (self.stack_pointer as u16);
-        memory[stack_addr] = val;
+        self.memory[stack_addr] = val;
         self.stack_pointer += 1;
         self.cycle += 1;
     }
 
-    fn push_word_to_stack<T: IndexMut<Word, Output = Byte>>(&mut self, val: Word, memory: &mut T) {
+    fn push_word_to_stack(&mut self, val: Word) {
         let msb: u8 = (val) as u8;
         let lsb: u8 = (val >> 8) as u8; // change to "to_le_bytes"
-        self.push_byte_to_stack(msb, memory);
-        self.push_byte_to_stack(lsb, memory);
+        self.push_byte_to_stack(msb);
+        self.push_byte_to_stack(lsb);
     }
 
-    pub fn execute<T: Memory>(&mut self, cycles: u64, memory: &mut T) -> u64 {
+    pub fn set_memory(&mut self, memory: Box<dyn Memory>) {
+        self.memory = memory;
+    }
+
+    pub fn execute(&mut self, cycles: u64) -> u64 {
         let cycles_before_execution = self.cycle;
         let stop_cycle = cycles_before_execution + cycles;
 
         while self.cycle < stop_cycle {
-            let instruction = self.fetch_instruction(memory);
+            let instruction = self.fetch_instruction();
             match instruction {
                 INSTRUCTION_LDA_IM => {
-                    self.accumulator = self.fetch_byte(memory);
-                    self.set_load_accumulator_status();
+                    lda_im(self);
                 },
                 INSTRUCTION_LDA_ZP => {
-                    let address: Word = self.fetch_byte(memory).into();
-                    self.accumulator = self.access_memory(address, memory);
-                    self.set_load_accumulator_status();
+                    lda_zp(self);
                 },
                 INSTRUCTION_LDA_ZPX => {
-                    let zero_page_addr = self.fetch_byte(memory);
-                    let final_addr: Word = self.sum_with_x(zero_page_addr).into();
-                    self.accumulator = self.access_memory(final_addr, memory);
-                    self.set_load_accumulator_status();
+                    lda_zpx(self);
                 },
                 INSTRUCTION_LDA_A => {
-                    self.set_load_accumulator_status();
+                    lda_a(self);
                 },
                 INSTRUCTION_JSR_A => {
-                    let jump_addr = self.fetch_word(memory);
-                    let saved_return_addr = self.program_counter - 1;
-                    self.cycle += 1;
-                    self.push_word_to_stack(saved_return_addr, memory);
-                    self.program_counter = jump_addr;
+                    jsr_a(self);
                 },
                 INSTRUCTION_JMP_A => {
-                    self.program_counter = self.fetch_word(memory);
+                    jmp_a(self);
                 },
                 _ => ()
             };
         }
 
         return stop_cycle;
-    }
-}
-
-impl Default for CPU {
-    fn default() -> Self {
-        return CPU {
-            cycle: 0,
-            program_counter: 0xFFFC,
-            stack_pointer: 0,
-            accumulator: 0,
-            index_register_x: 0,
-            index_register_y: 0,
-            processor_status: ProcessorStatus { flags: 0 }
-        };
     }
 }
 
