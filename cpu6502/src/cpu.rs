@@ -28,6 +28,23 @@ struct ProcessorStatus {
     flags: Byte,
 }
 
+enum AddressingMode {
+    Immediate,
+    ZeroPage,
+    ZeroPageX,
+    Absolute,
+    AbsoluteX,
+    AbsoluteY,
+    IndexIndirectX,
+    IndirectIndexY,
+}
+
+enum Register {
+    Accumulator,
+    IndexX,
+    IndexY,
+}
+
 impl ProcessorStatus {
     pub fn set_decimal_mode_flag(&mut self, value_set: bool) {
         self.set_flag(Flags::DecimalMode, value_set);
@@ -190,6 +207,29 @@ impl CPU {
 
     pub fn set_memory(&mut self, memory: Box<dyn Memory>) {
         self.memory = memory;
+    }
+
+    fn prepare_program_counter(&mut self, addr_mode: &AddressingMode) {
+        match addr_mode {
+            AddressingMode::ZeroPage | AddressingMode::IndirectIndexY => {
+                self.program_counter = self.fetch_zero_page_address();
+            }
+            AddressingMode::ZeroPageX | AddressingMode::IndexIndirectX => {
+                self.program_counter = self.fetch_zero_page_address_with_x_offset();
+            }
+            _ => {}
+        }
+
+        match addr_mode {
+            AddressingMode::Absolute
+            | AddressingMode::AbsoluteX
+            | AddressingMode::AbsoluteY
+            | AddressingMode::IndexIndirectX
+            | AddressingMode::IndirectIndexY => {
+                self.program_counter = self.fetch_address();
+            }
+            _ => {}
+        }
     }
 
     pub fn execute(&mut self, cycles: u64) -> u64 {
