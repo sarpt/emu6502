@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod lda_im {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
     fn should_fetch_byte_pointed_by_program_counter_into_accumulator() {
@@ -37,12 +37,13 @@ mod lda_im {
 
 #[cfg(test)]
 mod lda_zp {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
-    fn should_fetch_byte_from_a_zero_page_address_stored_in_a_place_pointed_by_program_counter_into_accumulator() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0x00,0x45])));
+    fn should_fetch_byte_from_a_zero_page_address_stored_in_a_place_pointed_by_program_counter_into_accumulator(
+    ) {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0x00, 0x45])));
         cpu.program_counter = 0x00;
 
         lda_zp(&mut cpu);
@@ -52,7 +53,7 @@ mod lda_zp {
 
     #[test]
     fn should_set_load_accumulator_processor_status() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0x00,0xFF])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0x00, 0xFF])));
         cpu.program_counter = 0x00;
 
         lda_zp(&mut cpu);
@@ -61,7 +62,7 @@ mod lda_zp {
     }
 
     fn should_take_two_cycles() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0x00,0x05])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0x00, 0x05])));
         cpu.program_counter = 0x00;
         cpu.cycle = 0;
 
@@ -73,12 +74,13 @@ mod lda_zp {
 
 #[cfg(test)]
 mod lda_zpx {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
-    fn should_fetch_byte_from_an_address_stored_in_program_counter_pointed_place_summed_with_index_register_x_into_accumulator() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01,0x00,0x00,0x55])));
+    fn should_fetch_byte_from_an_address_stored_in_program_counter_pointed_place_summed_with_index_register_x_into_accumulator(
+    ) {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x00, 0x00, 0x55])));
         cpu.index_register_x = 0x02;
         cpu.program_counter = 0x00;
 
@@ -88,7 +90,7 @@ mod lda_zpx {
     }
 
     fn should_overflow_over_byte_when_summing_address_from_memory_with_register_x() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF,0x88,0x00])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x88, 0x00])));
         cpu.index_register_x = 0x02;
         cpu.program_counter = 0x00;
 
@@ -99,7 +101,7 @@ mod lda_zpx {
 
     #[test]
     fn should_set_load_accumulator_processor_status() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01,0x00,0x00,0xFF])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x00, 0x00, 0xFF])));
         cpu.index_register_x = 0x02;
         cpu.program_counter = 0x00;
 
@@ -109,7 +111,7 @@ mod lda_zpx {
     }
 
     fn should_take_three_cycles() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01,0x00,0x00,0x55])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x00, 0x00, 0x55])));
         cpu.index_register_x = 0x02;
         cpu.program_counter = 0x00;
         cpu.cycle = 0;
@@ -122,12 +124,13 @@ mod lda_zpx {
 
 #[cfg(test)]
 mod lda_a {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
-    fn should_fetch_byte_from_an_absolute_address_stored_in_a_place_pointed_by_program_counter_into_accumulator() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0x45])));
+    fn should_fetch_byte_from_an_absolute_address_stored_in_a_place_pointed_by_program_counter_into_accumulator(
+    ) {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0x00, 0x00, 0x45])));
         cpu.program_counter = 0x00;
 
         lda_a(&mut cpu);
@@ -137,7 +140,7 @@ mod lda_a {
 
     #[test]
     fn should_set_load_accumulator_processor_status() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0xFF])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0x00, 0x00, 0xFF])));
         cpu.program_counter = 0x00;
 
         lda_a(&mut cpu);
@@ -146,7 +149,7 @@ mod lda_a {
     }
 
     fn should_take_three_cycles() {
-        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03,0x00,0x00,0x05])));
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0x00, 0x00, 0x05])));
         cpu.program_counter = 0x00;
         cpu.cycle = 0;
 
@@ -158,8 +161,8 @@ mod lda_a {
 
 #[cfg(test)]
 mod lda_in_y {
-    use crate::{cpu::tests::MemoryMock, consts::Byte};
     use super::super::*;
+    use crate::{consts::Byte, cpu::tests::MemoryMock};
 
     const INDIRECT_ZERO_PAGE_ADDRESS_PLACE: Byte = 0x01;
     const ADDRESS_LSB: Byte = 0x03;
@@ -168,14 +171,15 @@ mod lda_in_y {
     const VALUE: Byte = 0xDB;
 
     #[test]
-    fn should_fetch_byte_from_an_indirect_adress_stored_in_memory_at_zero_page_and_offset_with_value_from_index_register_y() {
+    fn should_fetch_byte_from_an_indirect_adress_stored_in_memory_at_zero_page_and_offset_with_value_from_index_register_y(
+    ) {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
             INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
             ADDRESS_LSB,
             ADDRESS_MSB,
             0x45,
             0xAF,
-            VALUE
+            VALUE,
         ])));
         cpu.index_register_y = 0x02;
         cpu.program_counter = 0x00;
@@ -193,7 +197,7 @@ mod lda_in_y {
             ADDRESS_MSB,
             0x45,
             0xAF,
-            VALUE
+            VALUE,
         ])));
         cpu.index_register_y = 0x02;
         cpu.program_counter = 0x00;
@@ -204,14 +208,15 @@ mod lda_in_y {
     }
 
     #[test]
-    fn should_take_four_cycles_when_summing_indirect_address_with_index_y_does_not_cross_page_flip() {
+    fn should_take_four_cycles_when_summing_indirect_address_with_index_y_does_not_cross_page_flip()
+    {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
             INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
             ADDRESS_LSB,
             ADDRESS_MSB,
             0x45,
             0xAF,
-            VALUE
+            VALUE,
         ])));
         cpu.index_register_y = 0x02;
         cpu.program_counter = 0x00;
@@ -224,7 +229,7 @@ mod lda_in_y {
 
     #[test]
     fn should_take_five_cycles_when_summing_indirect_address_with_index_y_crosses_page_flip() {
-        let mut memory: [Byte; 512] =  [0x00; 512];
+        let mut memory: [Byte; 512] = [0x00; 512];
         memory[0x0000] = INDIRECT_ZERO_PAGE_ADDRESS_PLACE;
         memory[0x0001] = ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY;
         memory[0x0002] = ADDRESS_MSB;
@@ -243,8 +248,8 @@ mod lda_in_y {
 
 #[cfg(test)]
 mod jsr_a {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
     fn should_fetch_address_pointed_by_program_counter_and_put_in_program_counter() {
@@ -279,8 +284,8 @@ mod jsr_a {
 
 #[cfg(test)]
 mod jmp_a {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
     fn should_put_address_stored_in_memory_at_program_counter_as_a_new_program_counter() {
@@ -306,8 +311,8 @@ mod jmp_a {
 
 #[cfg(test)]
 mod jmp_in {
-    use crate::cpu::tests::MemoryMock;
     use super::super::*;
+    use crate::cpu::tests::MemoryMock;
 
     #[test]
     fn should_fetch_indirect_address_from_memory_and_put_in_program_counter() {
@@ -331,7 +336,8 @@ mod jmp_in {
     }
 
     #[test]
-    fn should_incorrectly_interpret_address_pointed_to_by_program_counter_and_take_lsb_from_correct_address_but_wrap_around_page_for_msb() {
+    fn should_incorrectly_interpret_address_pointed_to_by_program_counter_and_take_lsb_from_correct_address_but_wrap_around_page_for_msb(
+    ) {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x00, 0x04, 0x00])));
         cpu.program_counter = 0x00;
 
@@ -339,5 +345,4 @@ mod jmp_in {
 
         assert_eq!(cpu.program_counter, 0xFF00);
     }
-
 }

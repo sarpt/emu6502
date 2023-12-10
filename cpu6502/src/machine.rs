@@ -8,8 +8,8 @@ pub struct Machine {
 
 impl Machine {
     pub fn new() -> Self {
-        return Machine{
-            cpu: CPU::new(Box::new(VecMemory::new()))
+        return Machine {
+            cpu: CPU::new(Box::new(VecMemory::new())),
         };
     }
 

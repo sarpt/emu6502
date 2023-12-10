@@ -1,5 +1,5 @@
 use self::instructions::*;
-use super::consts::{Word, Byte};
+use super::consts::{Byte, Word};
 use crate::memory::Memory;
 
 mod instructions;
@@ -18,12 +18,12 @@ const INSTRUCTION_JSR_A: Byte = 0x20;
 enum Flags {
     Zero = 1,
     DecimalMode = 3,
-    Negative = 7
+    Negative = 7,
 }
 
 struct ProcessorStatus {
     flags: Byte,
-} 
+}
 
 impl ProcessorStatus {
     pub fn set_decimal_mode_flag(&mut self, value_set: bool) {
@@ -57,7 +57,7 @@ pub struct CPU {
     index_register_x: Byte,
     index_register_y: Byte,
     processor_status: ProcessorStatus,
-    memory: Box<dyn Memory>
+    memory: Box<dyn Memory>,
 }
 
 impl CPU {
@@ -70,7 +70,7 @@ impl CPU {
             index_register_x: 0,
             index_register_y: 0,
             processor_status: ProcessorStatus { flags: 0 },
-            memory: memory
+            memory: memory,
         };
     }
 
@@ -117,8 +117,10 @@ impl CPU {
 
         let (new_lsb, carry) = lsb.overflowing_add(offset);
         self.program_counter = ((msb as u16) << 8) | new_lsb as u16;
-        self.cycle +=1;
-        if !carry { return self.access_memory(self.program_counter); };
+        self.cycle += 1;
+        if !carry {
+            return self.access_memory(self.program_counter);
+        };
 
         msb = msb.wrapping_add(1);
         self.program_counter = ((msb as u16) << 8) | new_lsb as u16;
@@ -157,7 +159,8 @@ impl CPU {
 
     fn set_load_accumulator_status(&mut self) -> () {
         self.processor_status.set_zero_flag(self.accumulator == 0);
-        self.processor_status.set_negative_flag((self.accumulator & 0b10000000) > 1);
+        self.processor_status
+            .set_negative_flag((self.accumulator & 0b10000000) > 1);
     }
 
     fn sum_with_x(&mut self, val: Byte) -> Byte {
@@ -195,29 +198,29 @@ impl CPU {
             match instruction {
                 INSTRUCTION_LDA_IM => {
                     lda_im(self);
-                },
+                }
                 INSTRUCTION_LDA_ZP => {
                     lda_zp(self);
-                },
+                }
                 INSTRUCTION_LDA_ZPX => {
                     lda_zpx(self);
-                },
+                }
                 INSTRUCTION_LDA_A => {
                     lda_a(self);
-                },
+                }
                 INSTRUCTION_LDA_IN_Y => {
                     lda_in_y(self);
-                },
+                }
                 INSTRUCTION_JSR_A => {
                     jsr_a(self);
-                },
+                }
                 INSTRUCTION_JMP_A => {
                     jmp_a(self);
-                },
+                }
                 INSTRUCTION_JMP_IN => {
                     jmp_in(self);
-                },
-                _ => ()
+                }
+                _ => (),
             };
         }
 

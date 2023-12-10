@@ -1,5 +1,5 @@
-use crate::consts::Word;
 use super::CPU;
+use crate::consts::Word;
 
 pub fn lda_im(cpu: &mut CPU) {
     cpu.accumulator = cpu.fetch_byte();
@@ -31,7 +31,8 @@ pub fn lda_in_y(cpu: &mut CPU) {
     cpu.set_load_accumulator_status();
 }
 
-pub fn jsr_a(cpu: &mut CPU) { // TODO: this one is incorrect, stack should decrement not incremenet
+pub fn jsr_a(cpu: &mut CPU) {
+    // TODO: this one is incorrect, stack should decrement not incremenet
     let jump_addr = cpu.fetch_address();
     cpu.decrement_program_counter();
     cpu.push_word_to_stack(cpu.program_counter);
@@ -51,13 +52,13 @@ pub fn jmp_in(cpu: &mut CPU) {
     let should_incorrectly_jump = address_of_jmp_address & 0x00FF == 0x00FF;
     if should_incorrectly_jump {
         cpu.program_counter = address_of_jmp_address;
-        let lsb: Word= cpu.fetch_byte().into();
+        let lsb: Word = cpu.fetch_byte().into();
         cpu.program_counter = address_of_jmp_address & 0x1100;
         let msb: Word = cpu.fetch_byte().into();
         let incorrect_jmp_address = (msb << 8) | lsb;
 
         cpu.program_counter = incorrect_jmp_address;
-        return
+        return;
     }
 
     let jmp_address = cpu.fetch_address_from(address_of_jmp_address);
