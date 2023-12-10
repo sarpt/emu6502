@@ -10,6 +10,9 @@ const INSTRUCTION_LDA_IM: Byte = 0xA9;
 const INSTRUCTION_LDA_ZP: Byte = 0xA5;
 const INSTRUCTION_LDA_ZPX: Byte = 0xB5;
 const INSTRUCTION_LDA_A: Byte = 0xAD;
+const INSTRUCTION_LDA_A_X: Byte = 0xBD;
+const INSTRUCTION_LDA_A_Y: Byte = 0xB9;
+const INSTRUCTION_LDA_IN_X: Byte = 0xA1;
 const INSTRUCTION_LDA_IN_Y: Byte = 0xB1;
 const INSTRUCTION_JMP_A: Byte = 0x4C;
 const INSTRUCTION_JMP_IN: Byte = 0x6C;
@@ -152,12 +155,12 @@ impl CPU {
         return self.fetch_byte().into();
     }
 
-    fn fetch_zero_page_with_x_offset(&mut self) -> Word {
+    fn fetch_zero_page_address_with_x_offset(&mut self) -> Word {
         let zero_page_addr = self.fetch_byte();
         return self.sum_with_x(zero_page_addr).into();
     }
 
-    fn set_load_accumulator_status(&mut self) -> () {
+    fn set_load_status(&mut self) -> () {
         self.processor_status.set_zero_flag(self.accumulator == 0);
         self.processor_status
             .set_negative_flag((self.accumulator & 0b10000000) > 1);
@@ -207,6 +210,15 @@ impl CPU {
                 }
                 INSTRUCTION_LDA_A => {
                     lda_a(self);
+                }
+                INSTRUCTION_LDA_A_X => {
+                    lda_a_x(self);
+                }
+                INSTRUCTION_LDA_A_Y => {
+                    lda_a_y(self);
+                }
+                INSTRUCTION_LDA_IN_X => {
+                    lda_in_x(self);
                 }
                 INSTRUCTION_LDA_IN_Y => {
                     lda_in_y(self);

@@ -3,32 +3,51 @@ use crate::consts::Word;
 
 pub fn lda_im(cpu: &mut CPU) {
     cpu.accumulator = cpu.fetch_byte();
-    cpu.set_load_accumulator_status();
+    cpu.set_load_status();
 }
 
 pub fn lda_zp(cpu: &mut CPU) {
     cpu.program_counter = cpu.fetch_zero_page_address();
     cpu.accumulator = cpu.fetch_byte();
-    cpu.set_load_accumulator_status();
+    cpu.set_load_status();
 }
 
 pub fn lda_zpx(cpu: &mut CPU) {
-    cpu.program_counter = cpu.fetch_zero_page_with_x_offset();
+    cpu.program_counter = cpu.fetch_zero_page_address_with_x_offset();
     cpu.accumulator = cpu.fetch_byte();
-    cpu.set_load_accumulator_status();
+    cpu.set_load_status();
 }
 
 pub fn lda_a(cpu: &mut CPU) {
     cpu.program_counter = cpu.fetch_address();
     cpu.accumulator = cpu.fetch_byte();
-    cpu.set_load_accumulator_status();
+    cpu.set_load_status();
+}
+
+pub fn lda_a_x(cpu: &mut CPU) {
+    cpu.program_counter = cpu.fetch_address();
+    cpu.accumulator = cpu.fetch_byte_with_offset(cpu.index_register_x);
+    cpu.set_load_status();
+}
+
+pub fn lda_a_y(cpu: &mut CPU) {
+    cpu.program_counter = cpu.fetch_address();
+    cpu.accumulator = cpu.fetch_byte_with_offset(cpu.index_register_y);
+    cpu.set_load_status();
+}
+
+pub fn lda_in_x(cpu: &mut CPU) {
+    cpu.program_counter = cpu.fetch_zero_page_address_with_x_offset();
+    cpu.program_counter = cpu.fetch_address();
+    cpu.accumulator = cpu.fetch_byte();
+    cpu.set_load_status();
 }
 
 pub fn lda_in_y(cpu: &mut CPU) {
     cpu.program_counter = cpu.fetch_zero_page_address();
     cpu.program_counter = cpu.fetch_address();
     cpu.accumulator = cpu.fetch_byte_with_offset(cpu.index_register_y);
-    cpu.set_load_accumulator_status();
+    cpu.set_load_status();
 }
 
 pub fn jsr_a(cpu: &mut CPU) {

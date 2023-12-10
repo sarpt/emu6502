@@ -221,7 +221,7 @@ mod fetch_zero_page_address {
 }
 
 #[cfg(test)]
-mod fetch_zero_page_with_x_offset {
+mod fetch_zero_page_address_with_x_offset {
     use super::MemoryMock;
     use crate::cpu::CPU;
 
@@ -232,7 +232,7 @@ mod fetch_zero_page_with_x_offset {
         uut.index_register_x = 0x20;
         uut.program_counter = 0x00;
 
-        let result = uut.fetch_zero_page_with_x_offset();
+        let result = uut.fetch_zero_page_address_with_x_offset();
 
         assert_eq!(result, 0x0023);
     }
@@ -244,7 +244,7 @@ mod fetch_zero_page_with_x_offset {
 
         assert_eq!(uut.cycle, 0);
 
-        uut.fetch_zero_page_with_x_offset();
+        uut.fetch_zero_page_address_with_x_offset();
 
         assert_eq!(uut.cycle, 2);
     }
@@ -255,7 +255,7 @@ mod fetch_zero_page_with_x_offset {
 
         assert_eq!(uut.cycle, 0);
 
-        uut.fetch_zero_page_with_x_offset();
+        uut.fetch_zero_page_address_with_x_offset();
 
         assert_eq!(uut.program_counter, 0x0001);
     }
@@ -393,7 +393,7 @@ mod sum_with_x {
 }
 
 #[cfg(test)]
-mod set_load_accumulator_status {
+mod set_load_status {
     use super::MemoryMock;
     use crate::cpu::CPU;
 
@@ -403,7 +403,7 @@ mod set_load_accumulator_status {
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x00;
 
-        uut.set_load_accumulator_status();
+        uut.set_load_status();
 
         assert_eq!(uut.processor_status.flags, 0b00000010);
     }
@@ -414,7 +414,7 @@ mod set_load_accumulator_status {
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0xFF;
 
-        uut.set_load_accumulator_status();
+        uut.set_load_status();
 
         assert_eq!(uut.processor_status.flags, 0b11111101);
     }
@@ -425,7 +425,7 @@ mod set_load_accumulator_status {
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x80;
 
-        uut.set_load_accumulator_status();
+        uut.set_load_status();
 
         assert_eq!(uut.processor_status.flags, 0b10000000);
     }
@@ -436,7 +436,7 @@ mod set_load_accumulator_status {
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0x00;
 
-        uut.set_load_accumulator_status();
+        uut.set_load_status();
 
         assert_eq!(uut.processor_status.flags, 0b01111111);
     }
