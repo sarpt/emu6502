@@ -99,16 +99,6 @@ mod access_memory {
         
         assert_eq!(result, 0x42);
     }
-
-    #[test]
-    fn should_increase_cycle_counter() {
-        let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        assert_eq!(uut.cycle, 0);
-
-        uut.access_memory(ADDR);
-        
-        assert_eq!(uut.cycle, 1);
-    }
 }
 
 #[cfg(test)]
@@ -445,5 +435,62 @@ mod set_load_accumulator_status {
         uut.set_load_accumulator_status();
         
         assert_eq!(uut.processor_status.flags, 0b01111111);
+    }
+}
+
+#[cfg(test)]
+mod fetch_byte_with_offset {
+    use crate::{cpu::CPU, consts::Byte};
+    use super::MemoryMock;
+
+    #[test]
+    fn should_fetch_byte_from_address_pointed_by_program_counter_with_added_provided_offset() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0xCB,0x52])));
+        uut.program_counter = 0x0001;
+
+        let offset: Byte = 0x02;
+        let result = uut.fetch_byte_with_offset(offset);
+        
+        assert_eq!(result, 0x52);
+    }
+
+    #[test]
+    fn should_take_one_cycle_when_adding_offset_does_not_cross_page_flip() {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03,0xFF,0xCB,0x52])));
+        uut.program_counter = 0x0001;
+        uut.cycle = 0;
+
+        let offset: Byte = 0x02;
+        uut.fetch_byte_with_offset(offset);
+        
+        assert_eq!(uut.cycle, 1);
+    }
+
+    #[test]
+    fn should_fetch_byte_from_address_pointed_by_program_counter_with_added_provided_offset_when_adding_crosses_page_flip() {
+        let mut memory: [Byte; 512] = [0x00; 512];
+        memory[0x0101] = 0x52;
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&memory)));
+        uut.program_counter = 0x00FF;
+
+        let offset: Byte = 0x02;
+        let result = uut.fetch_byte_with_offset(offset);
+        
+        assert_eq!(result, 0x52);
+    }
+
+
+    #[test]
+    fn should_take_two_cycles_when_adding_offset_crosses_page_flip() {
+        let mut memory: [Byte; 512] =  [0x00; 512];
+        memory[0x0101] = 0x52;
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&memory)));
+        uut.program_counter = 0x00FF;
+        uut.cycle = 0;
+
+        let offset: Byte = 0x02;
+        uut.fetch_byte_with_offset(offset);
+        
+        assert_eq!(uut.cycle, 2);
     }
 }

@@ -157,6 +157,91 @@ mod lda_a {
 }
 
 #[cfg(test)]
+mod lda_in_y {
+    use crate::{cpu::tests::MemoryMock, consts::Byte};
+    use super::super::*;
+
+    const INDIRECT_ZERO_PAGE_ADDRESS_PLACE: Byte = 0x01;
+    const ADDRESS_LSB: Byte = 0x03;
+    const ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY: Byte = 0xFF;
+    const ADDRESS_MSB: Byte = 0x00;
+    const VALUE: Byte = 0xDB;
+
+    #[test]
+    fn should_fetch_byte_from_an_indirect_adress_stored_in_memory_at_zero_page_and_offset_with_value_from_index_register_y() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+            INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
+            ADDRESS_LSB,
+            ADDRESS_MSB,
+            0x45,
+            0xAF,
+            VALUE
+        ])));
+        cpu.index_register_y = 0x02;
+        cpu.program_counter = 0x00;
+
+        lda_in_y(&mut cpu);
+
+        assert_eq!(cpu.accumulator, 0xDB);
+    }
+
+    #[test]
+    fn should_set_load_accumulator_processor_status() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+            INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
+            ADDRESS_LSB,
+            ADDRESS_MSB,
+            0x45,
+            0xAF,
+            VALUE
+        ])));
+        cpu.index_register_y = 0x02;
+        cpu.program_counter = 0x00;
+
+        lda_in_y(&mut cpu);
+
+        assert_eq!(cpu.processor_status.flags, 0b10000000);
+    }
+
+    #[test]
+    fn should_take_four_cycles_when_summing_indirect_address_with_index_y_does_not_cross_page_flip() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+            INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
+            ADDRESS_LSB,
+            ADDRESS_MSB,
+            0x45,
+            0xAF,
+            VALUE
+        ])));
+        cpu.index_register_y = 0x02;
+        cpu.program_counter = 0x00;
+        cpu.cycle = 0;
+
+        lda_in_y(&mut cpu);
+
+        assert_eq!(cpu.cycle, 4);
+    }
+
+    #[test]
+    fn should_take_five_cycles_when_summing_indirect_address_with_index_y_crosses_page_flip() {
+        let mut memory: [Byte; 512] =  [0x00; 512];
+        memory[0x0000] = INDIRECT_ZERO_PAGE_ADDRESS_PLACE;
+        memory[0x0001] = ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY;
+        memory[0x0002] = ADDRESS_MSB;
+        memory[0x0101] = VALUE;
+
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&memory)));
+        cpu.index_register_y = 0x02;
+        cpu.program_counter = 0x00;
+        cpu.cycle = 0;
+
+        lda_in_y(&mut cpu);
+
+        assert_eq!(cpu.cycle, 5);
+    }
+}
+
+#[cfg(test)]
 mod jsr_a {
     use crate::cpu::tests::MemoryMock;
     use super::super::*;
@@ -225,7 +310,7 @@ mod jmp_in {
     use super::super::*;
 
     #[test]
-    fn should_fetch_address_from_memory_pointed_by_program_counter_and_use_it_as_an_address_in_memory_pointing_to_address_to_put_into_program_counter() {
+    fn should_fetch_indirect_address_from_memory_and_put_in_program_counter() {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
         cpu.program_counter = 0x00;
 

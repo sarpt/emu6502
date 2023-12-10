@@ -10,6 +10,7 @@ const INSTRUCTION_LDA_IM: Byte = 0xA9;
 const INSTRUCTION_LDA_ZP: Byte = 0xA5;
 const INSTRUCTION_LDA_ZPX: Byte = 0xB5;
 const INSTRUCTION_LDA_A: Byte = 0xAD;
+const INSTRUCTION_LDA_IN_Y: Byte = 0xB1;
 const INSTRUCTION_JMP_A: Byte = 0x4C;
 const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
@@ -85,16 +86,44 @@ impl CPU {
 
     fn access_memory(&mut self, addr: Word) -> Byte {
         let data = self.memory[addr];
-        self.cycle += 1;
 
         return data;
     }
 
+    fn increment_program_counter(&mut self) {
+        self.program_counter = self.program_counter.wrapping_add(1);
+        self.cycle += 1;
+    }
+
+    fn decrement_program_counter(&mut self) {
+        self.program_counter = self.program_counter.wrapping_sub(1);
+        self.cycle += 1;
+    }
+
+    fn increment_stack_pointer(&mut self) {
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+    }
+
     fn fetch_byte(&mut self) -> Byte {
         let data = self.access_memory(self.program_counter);
-        self.program_counter = self.program_counter.wrapping_add(1);
+        self.increment_program_counter();
 
         return data;
+    }
+
+    fn fetch_byte_with_offset(&mut self, offset: Byte) -> Byte {
+        let lsb: u8 = (self.program_counter) as u8;
+        let mut msb: u8 = (self.program_counter >> 8) as u8; // change to "to_le_bytes"
+
+        let (new_lsb, carry) = lsb.overflowing_add(offset);
+        self.program_counter = ((msb as u16) << 8) | new_lsb as u16;
+        self.cycle +=1;
+        if !carry { return self.access_memory(self.program_counter); };
+
+        msb = msb.wrapping_add(1);
+        self.program_counter = ((msb as u16) << 8) | new_lsb as u16;
+        self.cycle += 1;
+        return self.access_memory(self.program_counter);
     }
 
     fn fetch_word(&mut self) -> Word {
@@ -142,15 +171,15 @@ impl CPU {
     fn push_byte_to_stack(&mut self, val: Byte) {
         let stack_addr: Word = 0x0100 | (self.stack_pointer as u16);
         self.memory[stack_addr] = val;
-        self.stack_pointer += 1;
-        self.cycle += 1;
+        self.increment_stack_pointer();
+        self.increment_program_counter();
     }
 
     fn push_word_to_stack(&mut self, val: Word) {
-        let msb: u8 = (val) as u8;
-        let lsb: u8 = (val >> 8) as u8; // change to "to_le_bytes"
-        self.push_byte_to_stack(msb);
+        let lsb: u8 = (val) as u8;
+        let msb: u8 = (val >> 8) as u8; // change to "to_le_bytes"
         self.push_byte_to_stack(lsb);
+        self.push_byte_to_stack(msb);
     }
 
     pub fn set_memory(&mut self, memory: Box<dyn Memory>) {
@@ -175,6 +204,9 @@ impl CPU {
                 },
                 INSTRUCTION_LDA_A => {
                     lda_a(self);
+                },
+                INSTRUCTION_LDA_IN_Y => {
+                    lda_in_y(self);
                 },
                 INSTRUCTION_JSR_A => {
                     jsr_a(self);
