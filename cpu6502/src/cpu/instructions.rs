@@ -17,7 +17,7 @@ pub fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
         Register::IndexX => cpu.index_register_x = value,
         Register::IndexY => cpu.index_register_y = value,
     }
-    cpu.set_load_status();
+    cpu.set_load_status(&register);
 }
 
 pub fn lda_im(cpu: &mut CPU) {
@@ -50,6 +50,46 @@ pub fn lda_in_x(cpu: &mut CPU) {
 
 pub fn lda_in_y(cpu: &mut CPU) {
     ld(cpu, AddressingMode::IndirectIndexY, Register::Accumulator);
+}
+
+pub fn ldy_im(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::Immediate, Register::IndexY);
+}
+
+pub fn ldy_zp(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::ZeroPage, Register::IndexY);
+}
+
+pub fn ldy_zpx(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::ZeroPageX, Register::IndexY);
+}
+
+pub fn ldy_a(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::Absolute, Register::IndexY);
+}
+
+pub fn ldy_a_x(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::AbsoluteX, Register::IndexY);
+}
+
+pub fn ldx_im(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::Immediate, Register::IndexX);
+}
+
+pub fn ldx_zp(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::ZeroPage, Register::IndexX);
+}
+
+pub fn ldx_zpy(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::ZeroPageY, Register::IndexX);
+}
+
+pub fn ldx_a(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::Absolute, Register::IndexX);
+}
+
+pub fn ldx_a_y(cpu: &mut CPU) {
+    ld(cpu, AddressingMode::AbsoluteY, Register::IndexX);
 }
 
 pub fn jsr_a(cpu: &mut CPU) {

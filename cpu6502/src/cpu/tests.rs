@@ -395,48 +395,52 @@ mod sum_with_x {
 #[cfg(test)]
 mod set_load_status {
     use super::MemoryMock;
-    use crate::cpu::CPU;
+    use crate::cpu::{Register, CPU};
 
     #[test]
-    fn should_set_zero_flag_on_processor_status_when_accumulator_is_zero() {
+    fn should_set_zero_flag_on_processor_status_when_register_is_zero() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x00;
 
-        uut.set_load_status();
+        let register = Register::Accumulator;
+        uut.set_load_status(&register);
 
         assert_eq!(uut.processor_status.flags, 0b00000010);
     }
 
     #[test]
-    fn should_unset_zero_flag_on_processor_status_when_accumulator_is_not_zero() {
+    fn should_unset_zero_flag_on_processor_status_when_register_is_not_zero() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0xFF;
 
-        uut.set_load_status();
+        let register = Register::Accumulator;
+        uut.set_load_status(&register);
 
         assert_eq!(uut.processor_status.flags, 0b11111101);
     }
 
     #[test]
-    fn should_set_negative_flag_on_processor_status_when_accumulator_has_bit_7_set() {
+    fn should_set_negative_flag_on_processor_status_when_register_has_bit_7_set() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x80;
 
-        uut.set_load_status();
+        let register = Register::Accumulator;
+        uut.set_load_status(&register);
 
         assert_eq!(uut.processor_status.flags, 0b10000000);
     }
 
     #[test]
-    fn should_unset_negative_flag_on_processor_status_when_accumulator_has_bit_7_unset() {
+    fn should_unset_negative_flag_on_processor_status_when_register_has_bit_7_unset() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0x00;
 
-        uut.set_load_status();
+        let register = Register::Accumulator;
+        uut.set_load_status(&register);
 
         assert_eq!(uut.processor_status.flags, 0b01111111);
     }
