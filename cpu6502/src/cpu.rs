@@ -10,7 +10,20 @@ const INSTRUCTION_LDA_IM: Byte = 0xA9;
 const INSTRUCTION_LDA_ZP: Byte = 0xA5;
 const INSTRUCTION_LDA_ZPX: Byte = 0xB5;
 const INSTRUCTION_LDA_A: Byte = 0xAD;
+const INSTRUCTION_LDA_A_X: Byte = 0xBD;
+const INSTRUCTION_LDA_A_Y: Byte = 0xB9;
+const INSTRUCTION_LDA_IN_X: Byte = 0xA1;
 const INSTRUCTION_LDA_IN_Y: Byte = 0xB1;
+const INSTRUCTION_LDY_IM: Byte = 0xA0;
+const INSTRUCTION_LDY_ZP: Byte = 0xA4;
+const INSTRUCTION_LDY_ZPX: Byte = 0xB4;
+const INSTRUCTION_LDY_A: Byte = 0xAC;
+const INSTRUCTION_LDY_A_X: Byte = 0xBC;
+const INSTRUCTION_LDX_IM: Byte = 0xA2;
+const INSTRUCTION_LDX_ZP: Byte = 0xA6;
+const INSTRUCTION_LDX_ZPY: Byte = 0xB6;
+const INSTRUCTION_LDX_A: Byte = 0xAE;
+const INSTRUCTION_LDX_A_Y: Byte = 0xBE;
 const INSTRUCTION_JMP_A: Byte = 0x4C;
 const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
@@ -23,6 +36,24 @@ enum Flags {
 
 struct ProcessorStatus {
     flags: Byte,
+}
+
+enum AddressingMode {
+    Immediate,
+    ZeroPage,
+    ZeroPageX,
+    ZeroPageY,
+    Absolute,
+    AbsoluteX,
+    AbsoluteY,
+    IndexIndirectX,
+    IndirectIndexY,
+}
+
+enum Register {
+    Accumulator,
+    IndexX,
+    IndexY,
 }
 
 impl ProcessorStatus {
@@ -152,20 +183,39 @@ impl CPU {
         return self.fetch_byte().into();
     }
 
-    fn fetch_zero_page_with_x_offset(&mut self) -> Word {
+    fn fetch_zero_page_address_with_y_offset(&mut self) -> Word {
+        let zero_page_addr = self.fetch_byte();
+        return self.sum_with_y(zero_page_addr).into();
+    }
+
+    fn fetch_zero_page_address_with_x_offset(&mut self) -> Word {
         let zero_page_addr = self.fetch_byte();
         return self.sum_with_x(zero_page_addr).into();
     }
 
-    fn set_load_accumulator_status(&mut self) -> () {
-        self.processor_status.set_zero_flag(self.accumulator == 0);
+    fn set_load_status(&mut self, register: &Register) {
+        let target_register = match register {
+            Register::Accumulator => self.accumulator,
+            Register::IndexX => self.index_register_x,
+            Register::IndexY => self.index_register_y,
+        };
+
+        self.processor_status.set_zero_flag(target_register == 0);
         self.processor_status
-            .set_negative_flag((self.accumulator & 0b10000000) > 1);
+            .set_negative_flag((target_register & 0b10000000) > 1);
     }
 
     fn sum_with_x(&mut self, val: Byte) -> Byte {
         let reg_x = self.index_register_x;
         let res = val.wrapping_add(reg_x);
+        self.cycle += 1;
+
+        return res;
+    }
+
+    fn sum_with_y(&mut self, val: Byte) -> Byte {
+        let reg_y = self.index_register_y;
+        let res = val.wrapping_add(reg_y);
         self.cycle += 1;
 
         return res;
@@ -189,6 +239,32 @@ impl CPU {
         self.memory = memory;
     }
 
+    fn prepare_program_counter(&mut self, addr_mode: &AddressingMode) {
+        match addr_mode {
+            AddressingMode::ZeroPage | AddressingMode::IndirectIndexY => {
+                self.program_counter = self.fetch_zero_page_address();
+            }
+            AddressingMode::ZeroPageY => {
+                self.program_counter = self.fetch_zero_page_address_with_y_offset();
+            }
+            AddressingMode::ZeroPageX | AddressingMode::IndexIndirectX => {
+                self.program_counter = self.fetch_zero_page_address_with_x_offset();
+            }
+            _ => {}
+        }
+
+        match addr_mode {
+            AddressingMode::Absolute
+            | AddressingMode::AbsoluteX
+            | AddressingMode::AbsoluteY
+            | AddressingMode::IndexIndirectX
+            | AddressingMode::IndirectIndexY => {
+                self.program_counter = self.fetch_address();
+            }
+            _ => {}
+        }
+    }
+
     pub fn execute(&mut self, cycles: u64) -> u64 {
         let cycles_before_execution = self.cycle;
         let stop_cycle = cycles_before_execution + cycles;
@@ -208,8 +284,47 @@ impl CPU {
                 INSTRUCTION_LDA_A => {
                     lda_a(self);
                 }
+                INSTRUCTION_LDA_A_X => {
+                    lda_a_x(self);
+                }
+                INSTRUCTION_LDA_A_Y => {
+                    lda_a_y(self);
+                }
+                INSTRUCTION_LDA_IN_X => {
+                    lda_in_x(self);
+                }
                 INSTRUCTION_LDA_IN_Y => {
                     lda_in_y(self);
+                }
+                INSTRUCTION_LDY_IM => {
+                    ldy_im(self);
+                }
+                INSTRUCTION_LDY_ZP => {
+                    ldy_zp(self);
+                }
+                INSTRUCTION_LDY_ZPX => {
+                    ldy_zpx(self);
+                }
+                INSTRUCTION_LDY_A => {
+                    ldy_a(self);
+                }
+                INSTRUCTION_LDY_A_X => {
+                    ldy_a_x(self);
+                }
+                INSTRUCTION_LDX_IM => {
+                    ldx_im(self);
+                }
+                INSTRUCTION_LDX_ZP => {
+                    ldx_zp(self);
+                }
+                INSTRUCTION_LDX_ZPY => {
+                    ldx_zpy(self);
+                }
+                INSTRUCTION_LDX_A => {
+                    ldx_a(self);
+                }
+                INSTRUCTION_LDX_A_Y => {
+                    ldx_a_y(self);
                 }
                 INSTRUCTION_JSR_A => {
                     jsr_a(self);
