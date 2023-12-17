@@ -42,6 +42,7 @@ struct ProcessorStatus {
 
 enum AddressingMode {
     Immediate,
+    Indirect,
     ZeroPage,
     ZeroPageX,
     ZeroPageY,
@@ -197,8 +198,12 @@ impl CPU {
     }
 
     fn fetch_address_from(&mut self, addr: Word) -> Word {
-        self.program_counter = addr;
-        return self.fetch_address();
+        let lsb: Word = self.access_memory(addr).into();
+        self.cycle += 1;
+        let msb: Word = self.access_memory(addr + 1).into();
+        self.cycle += 1;
+    
+        return (msb << 8) | lsb;
     }
 
     fn fetch_zero_page_address(&mut self) -> Word {
@@ -284,7 +289,7 @@ impl CPU {
             AddressingMode::ZeroPageX | AddressingMode::IndexIndirectX => {
                 address = self.fetch_zero_page_address_with_x_offset();
             }
-            AddressingMode::Absolute | AddressingMode::AbsoluteX | AddressingMode::AbsoluteY => {
+            AddressingMode::Absolute | AddressingMode::AbsoluteX | AddressingMode::AbsoluteY | AddressingMode::Indirect => {
                 address = self.fetch_address();
             },
             AddressingMode::Immediate => {
@@ -294,11 +299,17 @@ impl CPU {
 
         match addr_mode {
             AddressingMode::IndexIndirectX | AddressingMode::IndirectIndexY => {
+                address = self.fetch_address_from(address);
+            },
+            AddressingMode::Indirect => {
+                let should_incorrectly_jump = address & 0x00FF == 0x00FF;
+                if !should_incorrectly_jump { return self.fetch_address_from(address); };
+
                 let lsb: Word = self.access_memory(address).into();
-                self.cycle += 1;
-                let msb: Word = self.access_memory(address + 1).into();
-                address = (msb << 8) | lsb;
-                self.cycle += 1;
+                let msb: Word = self.access_memory(address & 0x1100).into();
+                let incorrect_jmp_address = (msb << 8) | lsb;
+
+                return incorrect_jmp_address;
             }
             _ => {}
         }
