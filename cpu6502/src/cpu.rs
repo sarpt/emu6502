@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use self::instructions::*;
 use super::consts::{Byte, Word};
 use crate::memory::Memory;
@@ -79,6 +81,8 @@ impl ProcessorStatus {
     }
 }
 
+type OpcodeHandler = fn(&mut CPU) -> ();
+
 pub struct CPU {
     cycle: u64,
     program_counter: Word,
@@ -89,10 +93,35 @@ pub struct CPU {
     index_register_y: Byte,
     processor_status: ProcessorStatus,
     memory: Box<dyn Memory>,
+    opcode_handlers: HashMap<Byte, OpcodeHandler>,
 }
 
 impl CPU {
     pub fn new(memory: Box<dyn Memory>) -> Self {
+        let opcode_handlers: HashMap<Byte, OpcodeHandler> = HashMap::from([
+            (INSTRUCTION_LDA_IM, lda_im as OpcodeHandler),
+            (INSTRUCTION_LDA_ZP, lda_zp as OpcodeHandler),
+            (INSTRUCTION_LDA_ZPX, lda_zpx as OpcodeHandler),
+            (INSTRUCTION_LDA_A, lda_a as OpcodeHandler),
+            (INSTRUCTION_LDA_A_X, lda_a_x as OpcodeHandler),
+            (INSTRUCTION_LDA_A_Y, lda_a_y as OpcodeHandler),
+            (INSTRUCTION_LDA_IN_X, lda_in_x as OpcodeHandler),
+            (INSTRUCTION_LDA_IN_Y, lda_in_y as OpcodeHandler),
+            (INSTRUCTION_LDY_IM, ldy_im as OpcodeHandler),
+            (INSTRUCTION_LDY_ZP, ldy_zp as OpcodeHandler),
+            (INSTRUCTION_LDY_ZPX, ldy_zpx as OpcodeHandler),
+            (INSTRUCTION_LDY_A, ldy_a as OpcodeHandler),
+            (INSTRUCTION_LDY_A_X, ldy_a_x as OpcodeHandler),
+            (INSTRUCTION_LDX_IM, ldx_im as OpcodeHandler),
+            (INSTRUCTION_LDX_ZP, ldx_zp as OpcodeHandler),
+            (INSTRUCTION_LDX_ZPY, ldx_zpy as OpcodeHandler),
+            (INSTRUCTION_LDX_A, ldx_a as OpcodeHandler),
+            (INSTRUCTION_LDX_A_Y, ldx_a_y as OpcodeHandler),
+            (INSTRUCTION_JMP_A, jmp_a as OpcodeHandler),
+            (INSTRUCTION_JMP_IN, jmp_in as OpcodeHandler),
+            (INSTRUCTION_JSR_A, jsr_a as OpcodeHandler),
+        ]);
+
         return CPU {
             cycle: 0,
             program_counter: 0xFFFC,
@@ -102,6 +131,7 @@ impl CPU {
             index_register_y: 0,
             processor_status: ProcessorStatus { flags: 0 },
             memory: memory,
+            opcode_handlers
         };
     }
 
@@ -270,73 +300,12 @@ impl CPU {
         let stop_cycle = cycles_before_execution + cycles;
 
         while self.cycle < stop_cycle {
-            let instruction = self.fetch_instruction();
-            match instruction {
-                INSTRUCTION_LDA_IM => {
-                    lda_im(self);
-                }
-                INSTRUCTION_LDA_ZP => {
-                    lda_zp(self);
-                }
-                INSTRUCTION_LDA_ZPX => {
-                    lda_zpx(self);
-                }
-                INSTRUCTION_LDA_A => {
-                    lda_a(self);
-                }
-                INSTRUCTION_LDA_A_X => {
-                    lda_a_x(self);
-                }
-                INSTRUCTION_LDA_A_Y => {
-                    lda_a_y(self);
-                }
-                INSTRUCTION_LDA_IN_X => {
-                    lda_in_x(self);
-                }
-                INSTRUCTION_LDA_IN_Y => {
-                    lda_in_y(self);
-                }
-                INSTRUCTION_LDY_IM => {
-                    ldy_im(self);
-                }
-                INSTRUCTION_LDY_ZP => {
-                    ldy_zp(self);
-                }
-                INSTRUCTION_LDY_ZPX => {
-                    ldy_zpx(self);
-                }
-                INSTRUCTION_LDY_A => {
-                    ldy_a(self);
-                }
-                INSTRUCTION_LDY_A_X => {
-                    ldy_a_x(self);
-                }
-                INSTRUCTION_LDX_IM => {
-                    ldx_im(self);
-                }
-                INSTRUCTION_LDX_ZP => {
-                    ldx_zp(self);
-                }
-                INSTRUCTION_LDX_ZPY => {
-                    ldx_zpy(self);
-                }
-                INSTRUCTION_LDX_A => {
-                    ldx_a(self);
-                }
-                INSTRUCTION_LDX_A_Y => {
-                    ldx_a_y(self);
-                }
-                INSTRUCTION_JSR_A => {
-                    jsr_a(self);
-                }
-                INSTRUCTION_JMP_A => {
-                    jmp_a(self);
-                }
-                INSTRUCTION_JMP_IN => {
-                    jmp_in(self);
-                }
-                _ => (),
-            };
+            let opcode = self.fetch_instruction();
+            let handler = self.opcode_handlers.get(&opcode);
+            match handler {
+                Some(cb) => cb(self),
+                None => panic!("illegal opcode found: {opcode}")
+            }
         }
 
         return stop_cycle;
