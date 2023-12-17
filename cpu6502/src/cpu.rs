@@ -132,7 +132,7 @@ impl CPU {
             index_register_y: 0,
             processor_status: ProcessorStatus { flags: 0 },
             memory: memory,
-            opcode_handlers
+            opcode_handlers,
         };
     }
 
@@ -202,7 +202,7 @@ impl CPU {
         self.cycle += 1;
         let msb: Word = self.access_memory(addr + 1).into();
         self.cycle += 1;
-    
+
         return (msb << 8) | lsb;
     }
 
@@ -277,7 +277,7 @@ impl CPU {
     }
 
     fn get_address(&mut self, addr_mode: &AddressingMode) -> Word {
-        let mut address : Word;
+        let mut address: Word;
 
         match addr_mode {
             AddressingMode::ZeroPage | AddressingMode::IndirectIndexY => {
@@ -289,21 +289,26 @@ impl CPU {
             AddressingMode::ZeroPageX | AddressingMode::IndexIndirectX => {
                 address = self.fetch_zero_page_address_with_x_offset();
             }
-            AddressingMode::Absolute | AddressingMode::AbsoluteX | AddressingMode::AbsoluteY | AddressingMode::Indirect => {
+            AddressingMode::Absolute
+            | AddressingMode::AbsoluteX
+            | AddressingMode::AbsoluteY
+            | AddressingMode::Indirect => {
                 address = self.fetch_address();
-            },
+            }
             AddressingMode::Immediate => {
                 address = self.program_counter;
-            },
+            }
         }
 
         match addr_mode {
             AddressingMode::IndexIndirectX | AddressingMode::IndirectIndexY => {
                 address = self.fetch_address_from(address);
-            },
+            }
             AddressingMode::Indirect => {
                 let should_incorrectly_jump = address & 0x00FF == 0x00FF;
-                if !should_incorrectly_jump { return self.fetch_address_from(address); };
+                if !should_incorrectly_jump {
+                    return self.fetch_address_from(address);
+                };
 
                 let lsb: Word = self.access_memory(address).into();
                 let msb: Word = self.access_memory(address & 0x1100).into();
@@ -326,7 +331,7 @@ impl CPU {
             let handler = self.opcode_handlers.get(&opcode);
             match handler {
                 Some(cb) => cb(self),
-                None => panic!("illegal opcode found: {opcode}")
+                None => panic!("illegal opcode found: {opcode}"),
             }
         }
 

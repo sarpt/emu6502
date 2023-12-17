@@ -1,5 +1,4 @@
 use super::{AddressingMode, Register, CPU};
-use crate::consts::Word;
 
 pub fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
     let address = cpu.get_address(&addr_mode);
