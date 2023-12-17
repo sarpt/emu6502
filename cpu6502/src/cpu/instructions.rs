@@ -2,14 +2,17 @@ use super::{AddressingMode, Register, CPU};
 use crate::consts::Word;
 
 pub fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
-    cpu.prepare_program_counter(&addr_mode);
+    let address = cpu.get_address(&addr_mode);
 
     let value = match addr_mode {
         AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
-            cpu.fetch_byte_with_offset(cpu.index_register_y)
+            cpu.fetch_byte_with_offset(address, cpu.index_register_y)
         }
-        AddressingMode::AbsoluteX => cpu.fetch_byte_with_offset(cpu.index_register_x),
-        _ => cpu.fetch_byte(),
+        AddressingMode::AbsoluteX => cpu.fetch_byte_with_offset(address, cpu.index_register_x),
+        _ => {
+            cpu.cycle += 1;
+            cpu.access_memory(address)
+        }
     };
 
     match register {
@@ -112,18 +115,15 @@ pub fn jmp_in(cpu: &mut CPU) {
     // TODO: maybe make this an optional behavior
     let should_incorrectly_jump = address_of_jmp_address & 0x00FF == 0x00FF;
     if should_incorrectly_jump {
-        cpu.program_counter = address_of_jmp_address;
-        let lsb: Word = cpu.fetch_byte().into();
-        cpu.program_counter = address_of_jmp_address & 0x1100;
-        let msb: Word = cpu.fetch_byte().into();
+        let lsb: Word = cpu.access_memory(address_of_jmp_address).into();
+        let msb: Word = cpu.access_memory(address_of_jmp_address & 0x1100).into();
         let incorrect_jmp_address = (msb << 8) | lsb;
 
         cpu.program_counter = incorrect_jmp_address;
         return;
     }
 
-    let jmp_address = cpu.fetch_address_from(address_of_jmp_address);
-    cpu.program_counter = jmp_address;
+    cpu.program_counter = cpu.fetch_address_from(address_of_jmp_address);
 }
 
 #[cfg(test)]

@@ -105,63 +105,6 @@ mod access_memory {
 }
 
 #[cfg(test)]
-mod fetch_byte {
-    use super::MemoryMock;
-    use crate::cpu::CPU;
-
-    #[test]
-    fn should_return_a_byte_pointed_by_a_program_counter() {
-        let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.program_counter = 0x0001;
-
-        let result = uut.fetch_byte();
-
-        assert_eq!(result, 0x51);
-    }
-
-    #[test]
-    fn should_increase_cycle_counter_and_a_program_counter() {
-        let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.program_counter = 0x0001;
-
-        assert_eq!(uut.cycle, 0);
-
-        uut.fetch_byte();
-
-        assert_eq!(uut.cycle, 1);
-        assert_eq!(uut.program_counter, 0x0002);
-    }
-}
-
-#[cfg(test)]
-mod fetch_word {
-    use super::MemoryMock;
-    use crate::cpu::CPU;
-
-    #[test]
-    fn should_return_a_word_pointed_by_a_program_counter_in_little_endian() {
-        let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.program_counter = 0x0001;
-
-        let result = uut.fetch_word();
-
-        assert_eq!(result, 0x8851);
-    }
-
-    #[test]
-    fn should_increase_cycle_counter_and_a_program_counter_twice() {
-        let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.program_counter = 0x0001;
-
-        assert_eq!(uut.cycle, 0);
-
-        uut.fetch_word();
-
-        assert_eq!(uut.cycle, 2);
-        assert_eq!(uut.program_counter, 0x0003);
-    }
-}
-
 #[cfg(test)]
 mod fetch_address {
     use super::MemoryMock;
@@ -452,12 +395,12 @@ mod fetch_byte_with_offset {
     use crate::{consts::Byte, cpu::CPU};
 
     #[test]
-    fn should_fetch_byte_from_address_pointed_by_program_counter_with_added_provided_offset() {
+    fn should_fetch_byte_from_address_with_added_provided_offset() {
         let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
-        uut.program_counter = 0x0001;
 
+        let addr = 0x0001;
         let offset: Byte = 0x02;
-        let result = uut.fetch_byte_with_offset(offset);
+        let result = uut.fetch_byte_with_offset(addr, offset);
 
         assert_eq!(result, 0x52);
     }
@@ -465,25 +408,25 @@ mod fetch_byte_with_offset {
     #[test]
     fn should_take_one_cycle_when_adding_offset_does_not_cross_page_flip() {
         let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
-        uut.program_counter = 0x0001;
         uut.cycle = 0;
 
+        let addr = 0x0001;
         let offset: Byte = 0x02;
-        uut.fetch_byte_with_offset(offset);
+        uut.fetch_byte_with_offset(addr, offset);
 
         assert_eq!(uut.cycle, 1);
     }
 
     #[test]
-    fn should_fetch_byte_from_address_pointed_by_program_counter_with_added_provided_offset_when_adding_crosses_page_flip(
+    fn should_fetch_byte_from_address_with_added_provided_offset_when_adding_crosses_page_flip(
     ) {
         let mut memory: [Byte; 512] = [0x00; 512];
         memory[0x0101] = 0x52;
         let mut uut = CPU::new(Box::new(MemoryMock::new(&memory)));
-        uut.program_counter = 0x00FF;
 
+        let addr = 0x00FF;
         let offset: Byte = 0x02;
-        let result = uut.fetch_byte_with_offset(offset);
+        let result = uut.fetch_byte_with_offset(addr, offset);
 
         assert_eq!(result, 0x52);
     }
@@ -493,11 +436,11 @@ mod fetch_byte_with_offset {
         let mut memory: [Byte; 512] = [0x00; 512];
         memory[0x0101] = 0x52;
         let mut uut = CPU::new(Box::new(MemoryMock::new(&memory)));
-        uut.program_counter = 0x00FF;
         uut.cycle = 0;
 
+        let addr = 0x00FF;
         let offset: Byte = 0x02;
-        uut.fetch_byte_with_offset(offset);
+        uut.fetch_byte_with_offset(addr, offset);
 
         assert_eq!(uut.cycle, 2);
     }

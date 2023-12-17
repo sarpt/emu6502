@@ -146,9 +146,7 @@ impl CPU {
     }
 
     fn access_memory(&mut self, addr: Word) -> Byte {
-        let data = self.memory[addr];
-
-        return data;
+        return self.memory[addr];
     }
 
     fn increment_program_counter(&mut self) {
@@ -165,61 +163,65 @@ impl CPU {
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
     }
 
-    fn fetch_byte(&mut self) -> Byte {
-        let data = self.access_memory(self.program_counter);
-        self.increment_program_counter();
-
-        return data;
-    }
-
-    fn fetch_byte_with_offset(&mut self, offset: Byte) -> Byte {
-        let lsb: u8 = (self.program_counter) as u8;
-        let mut msb: u8 = (self.program_counter >> 8) as u8; // change to "to_le_bytes"
+    fn fetch_byte_with_offset(&mut self, addr: Word, offset: Byte) -> Byte {
+        let lsb: u8 = (addr) as u8;
+        let mut msb: u8 = (addr >> 8) as u8; // change to "to_le_bytes"
 
         let (new_lsb, carry) = lsb.overflowing_add(offset);
-        self.program_counter = ((msb as u16) << 8) | new_lsb as u16;
+        let mut address = ((msb as u16) << 8) | new_lsb as u16;
         self.cycle += 1;
         if !carry {
-            return self.access_memory(self.program_counter);
+            return self.access_memory(address);
         };
 
         msb = msb.wrapping_add(1);
-        self.program_counter = ((msb as u16) << 8) | new_lsb as u16;
+        address = ((msb as u16) << 8) | new_lsb as u16;
         self.cycle += 1;
-        return self.access_memory(self.program_counter);
+        return self.access_memory(address);
     }
 
-    fn fetch_word(&mut self) -> Word {
-        let lsb: Word = self.fetch_byte().into();
-        let msb: Word = self.fetch_byte().into();
+    fn fetch_instruction(&mut self) -> Instruction {
+        let opcode = self.access_memory(self.program_counter);
+        self.increment_program_counter();
+
+        return opcode;
+    }
+
+    fn fetch_address(&mut self) -> Word {
+        let lsb: Word = self.access_memory(self.program_counter).into();
+        self.increment_program_counter();
+        let msb: Word = self.access_memory(self.program_counter).into();
+        self.increment_program_counter();
 
         return (msb << 8) | lsb;
     }
 
-    fn fetch_instruction(&mut self) -> Instruction {
-        return self.fetch_byte();
-    }
-
-    fn fetch_address(&mut self) -> Word {
-        return self.fetch_word();
-    }
-
     fn fetch_address_from(&mut self, addr: Word) -> Word {
         self.program_counter = addr;
-        return self.fetch_word();
+        return self.fetch_address();
     }
 
     fn fetch_zero_page_address(&mut self) -> Word {
-        return self.fetch_byte().into();
+        let address: Word = self.access_memory(self.program_counter).into();
+        self.increment_program_counter();
+
+        return address;
+    }
+
+    fn fetch_zero_page_address_lsb(&mut self) -> Byte {
+        let address: Byte = self.access_memory(self.program_counter);
+        self.increment_program_counter();
+
+        return address;
     }
 
     fn fetch_zero_page_address_with_y_offset(&mut self) -> Word {
-        let zero_page_addr = self.fetch_byte();
+        let zero_page_addr = self.fetch_zero_page_address_lsb();
         return self.sum_with_y(zero_page_addr).into();
     }
 
     fn fetch_zero_page_address_with_x_offset(&mut self) -> Word {
-        let zero_page_addr = self.fetch_byte();
+        let zero_page_addr = self.fetch_zero_page_address_lsb();
         return self.sum_with_x(zero_page_addr).into();
     }
 
@@ -269,30 +271,39 @@ impl CPU {
         self.memory = memory;
     }
 
-    fn prepare_program_counter(&mut self, addr_mode: &AddressingMode) {
+    fn get_address(&mut self, addr_mode: &AddressingMode) -> Word {
+        let mut address : Word;
+
         match addr_mode {
             AddressingMode::ZeroPage | AddressingMode::IndirectIndexY => {
-                self.program_counter = self.fetch_zero_page_address();
+                address = self.fetch_zero_page_address();
             }
             AddressingMode::ZeroPageY => {
-                self.program_counter = self.fetch_zero_page_address_with_y_offset();
+                address = self.fetch_zero_page_address_with_y_offset();
             }
             AddressingMode::ZeroPageX | AddressingMode::IndexIndirectX => {
-                self.program_counter = self.fetch_zero_page_address_with_x_offset();
+                address = self.fetch_zero_page_address_with_x_offset();
+            }
+            AddressingMode::Absolute | AddressingMode::AbsoluteX | AddressingMode::AbsoluteY => {
+                address = self.fetch_address();
+            },
+            AddressingMode::Immediate => {
+                address = self.program_counter;
+            },
+        }
+
+        match addr_mode {
+            AddressingMode::IndexIndirectX | AddressingMode::IndirectIndexY => {
+                let lsb: Word = self.access_memory(address).into();
+                self.cycle += 1;
+                let msb: Word = self.access_memory(address + 1).into();
+                address = (msb << 8) | lsb;
+                self.cycle += 1;
             }
             _ => {}
         }
 
-        match addr_mode {
-            AddressingMode::Absolute
-            | AddressingMode::AbsoluteX
-            | AddressingMode::AbsoluteY
-            | AddressingMode::IndexIndirectX
-            | AddressingMode::IndirectIndexY => {
-                self.program_counter = self.fetch_address();
-            }
-            _ => {}
-        }
+        return address;
     }
 
     pub fn execute(&mut self, cycles: u64) -> u64 {
