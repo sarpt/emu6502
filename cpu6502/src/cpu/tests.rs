@@ -192,6 +192,7 @@ mod fetch_zero_page_address_with_x_offset {
         assert_eq!(uut.cycle, 2);
     }
 
+    #[test]
     fn should_increase_program_counter_once() {
         let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF])));
         uut.program_counter = 0x00;
@@ -418,8 +419,7 @@ mod fetch_byte_with_offset {
     }
 
     #[test]
-    fn should_fetch_byte_from_address_with_added_provided_offset_when_adding_crosses_page_flip(
-    ) {
+    fn should_fetch_byte_from_address_with_added_provided_offset_when_adding_crosses_page_flip() {
         let mut memory: [Byte; 512] = [0x00; 512];
         memory[0x0101] = 0x52;
         let mut uut = CPU::new(Box::new(MemoryMock::new(&memory)));
@@ -443,5 +443,399 @@ mod fetch_byte_with_offset {
         uut.fetch_byte_with_offset(addr, offset);
 
         assert_eq!(uut.cycle, 2);
+    }
+}
+
+#[cfg(test)]
+mod get_address {
+
+    #[cfg(test)]
+    mod immediate_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_program_counter_address() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0xCB;
+
+            let result = uut.get_address(&AddressingMode::Immediate);
+
+            assert_eq!(result, 0xCB);
+        }
+
+        #[test]
+        fn should_not_change_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0xCB;
+
+            uut.get_address(&AddressingMode::Immediate);
+
+            assert_eq!(uut.program_counter, 0xCB);
+        }
+
+        #[test]
+        fn should_not_take_any_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0xCB;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::Immediate);
+
+            assert_eq!(uut.cycle, 0);
+        }
+    }
+
+    #[cfg(test)]
+    mod absolute_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_from_next_word_in_memory_relative_to_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x01;
+
+            let result = uut.get_address(&AddressingMode::Absolute);
+
+            assert_eq!(result, 0xCBFF);
+        }
+
+        #[test]
+        fn should_advance_program_counter_twice() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x01;
+
+            uut.get_address(&AddressingMode::Absolute);
+
+            assert_eq!(uut.program_counter, 0x03);
+        }
+
+        #[test]
+        fn should_take_two_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x01;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::Absolute);
+
+            assert_eq!(uut.cycle, 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod absolute_x_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_from_next_word_in_memory_relative_to_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+
+            let result = uut.get_address(&AddressingMode::AbsoluteX);
+
+            assert_eq!(result, 0x52CB);
+        }
+
+        #[test]
+        fn should_advance_program_counter_twice() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+
+            uut.get_address(&AddressingMode::AbsoluteX);
+
+            assert_eq!(uut.program_counter, 0x04);
+        }
+
+        #[test]
+        fn should_take_two_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::AbsoluteX);
+
+            assert_eq!(uut.cycle, 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod absolute_y_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_from_next_word_in_memory_relative_to_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+
+            let result = uut.get_address(&AddressingMode::AbsoluteY);
+
+            assert_eq!(result, 0x52CB);
+        }
+
+        #[test]
+        fn should_advance_program_counter_twice() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+
+            uut.get_address(&AddressingMode::AbsoluteY);
+
+            assert_eq!(uut.program_counter, 0x04);
+        }
+
+        #[test]
+        fn should_take_two_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::AbsoluteY);
+
+            assert_eq!(uut.cycle, 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod zero_page_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+
+            let result = uut.get_address(&AddressingMode::ZeroPage);
+
+            assert_eq!(result, 0x00CB);
+        }
+
+        #[test]
+        fn should_advance_program_counter_once() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+
+            uut.get_address(&AddressingMode::ZeroPage);
+
+            assert_eq!(uut.program_counter, 0x03);
+        }
+
+        #[test]
+        fn should_take_one_cycle() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::ZeroPage);
+
+            assert_eq!(uut.cycle, 1);
+        }
+    }
+
+    #[cfg(test)]
+    mod zero_page_x_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter_summed_with_index_register_x() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.index_register_x = 0x03;
+
+            let result = uut.get_address(&AddressingMode::ZeroPageX);
+
+            assert_eq!(result, 0x00CE);
+        }
+
+        #[test]
+        fn should_advance_program_counter_once() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.index_register_x = 0x03;
+
+            uut.get_address(&AddressingMode::ZeroPageX);
+
+            assert_eq!(uut.program_counter, 0x03);
+        }
+
+        #[test]
+        fn should_take_two_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.index_register_x = 0x03;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::ZeroPageX);
+
+            assert_eq!(uut.cycle, 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod zero_page_y_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter_summed_with_index_register_y() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x03;
+            uut.index_register_y = 0x03;
+
+            let result = uut.get_address(&AddressingMode::ZeroPageY);
+
+            assert_eq!(result, 0x0055);
+        }
+
+        #[test]
+        fn should_advance_program_counter_once() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.index_register_y = 0x03;
+
+            uut.get_address(&AddressingMode::ZeroPageY);
+
+            assert_eq!(uut.program_counter, 0x03);
+        }
+
+        #[test]
+        fn should_take_two_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+            uut.program_counter = 0x02;
+            uut.index_register_y = 0x03;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::ZeroPageY);
+
+            assert_eq!(uut.cycle, 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod index_indirect_x_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_stored_in_place_pointed_by_zero_page_address_in_next_byte_relative_to_program_counter_summed_with_index_register_x() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x01, 0xFF, 0x03, 0xDD, 0x25])));
+            uut.program_counter = 0x00;
+            uut.index_register_x = 0x01;
+
+            let result = uut.get_address(&AddressingMode::IndexIndirectX);
+
+            assert_eq!(result, 0xDD03);
+        }
+
+        #[test]
+        fn should_advance_program_counter_once() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x01, 0xFF, 0x03, 0xDD, 0x25])));
+            uut.program_counter = 0x00;
+            uut.index_register_x = 0x01;
+
+            uut.get_address(&AddressingMode::IndexIndirectX);
+
+            assert_eq!(uut.program_counter, 0x01);
+        }
+
+        #[test]
+        fn should_take_four_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x01, 0xFF, 0x03, 0xDD, 0x25])));
+            uut.program_counter = 0x00;
+            uut.index_register_x = 0x01;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::IndexIndirectX);
+
+            assert_eq!(uut.cycle, 4);
+        }
+    }
+
+    #[cfg(test)]
+    mod indirect_index_y_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_stored_in_place_pointed_by_zero_page_address_in_next_byte_relative_to_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0xFF, 0x03, 0xDD, 0x25])));
+            uut.program_counter = 0x00;
+
+            let result = uut.get_address(&AddressingMode::IndirectIndexY);
+
+            assert_eq!(result, 0xDD03);
+        }
+
+        #[test]
+        fn should_advance_program_counter_once() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0xFF, 0x03, 0xDD, 0x25])));
+            uut.program_counter = 0x00;
+
+            uut.get_address(&AddressingMode::IndirectIndexY);
+
+            assert_eq!(uut.program_counter, 0x01);
+        }
+
+        #[test]
+        fn should_take_three_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0xFF, 0x03, 0xDD, 0x25])));
+            uut.program_counter = 0x00;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::IndirectIndexY);
+
+            assert_eq!(uut.cycle, 3);
+        }
+    }
+
+    #[cfg(test)]
+    mod indirect_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{CPU, AddressingMode};
+
+        #[test]
+        fn should_return_address_from_place_in_memory_stored_in_next_word_relative_to_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x00;
+
+            let result = uut.get_address(&AddressingMode::Indirect);
+
+            assert_eq!(result, 0x0001);
+        }
+
+        #[test]
+        fn should_advance_program_counter_twice() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x00;
+
+            uut.get_address(&AddressingMode::Indirect);
+
+            assert_eq!(uut.program_counter, 0x02);
+        }
+
+        #[test]
+        fn should_take_four_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x02;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::Indirect);
+
+            assert_eq!(uut.cycle, 4);
+        }
+
+        #[test]
+        fn should_incorrectly_interpret_address_stored_in_next_word_when_it_points_to_page_edge_and_take_lsb_from_correct_address_but_wrap_around_page_for_msb(
+        ) {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x00, 0x04, 0x00])));
+            uut.program_counter = 0x00;
+
+            let result = uut.get_address(&AddressingMode::Indirect);
+
+            assert_eq!(result, 0xFF00);
+        }
     }
 }

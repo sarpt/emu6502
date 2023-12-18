@@ -1,5 +1,4 @@
 use super::{AddressingMode, Register, CPU};
-use crate::consts::Word;
 
 pub fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
     let address = cpu.get_address(&addr_mode);
@@ -103,27 +102,16 @@ pub fn jsr_a(cpu: &mut CPU) {
     cpu.program_counter = jump_addr;
 }
 
+pub fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
+    cpu.program_counter = cpu.get_address(&addr_mode);
+}
+
 pub fn jmp_a(cpu: &mut CPU) {
-    cpu.program_counter = cpu.fetch_address();
+    jmp(cpu, AddressingMode::Absolute);
 }
 
 pub fn jmp_in(cpu: &mut CPU) {
-    let address_of_jmp_address = cpu.fetch_address();
-    // 6502 had a bug in indirect jump when indirect address was on a page flip
-    // The bug was fixed with 65SC02
-    // http://www.6502.org/users/obelisk/6502/reference.html#JMP
-    // TODO: maybe make this an optional behavior
-    let should_incorrectly_jump = address_of_jmp_address & 0x00FF == 0x00FF;
-    if should_incorrectly_jump {
-        let lsb: Word = cpu.access_memory(address_of_jmp_address).into();
-        let msb: Word = cpu.access_memory(address_of_jmp_address & 0x1100).into();
-        let incorrect_jmp_address = (msb << 8) | lsb;
-
-        cpu.program_counter = incorrect_jmp_address;
-        return;
-    }
-
-    cpu.program_counter = cpu.fetch_address_from(address_of_jmp_address);
+    jmp(cpu, AddressingMode::Indirect);
 }
 
 #[cfg(test)]

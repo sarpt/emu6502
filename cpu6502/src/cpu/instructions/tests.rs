@@ -92,6 +92,7 @@ mod lda {
             assert_eq!(cpu.accumulator, 0x55);
         }
 
+        #[test]
         fn should_overflow_over_byte_when_summing_address_from_memory_with_register_x() {
             let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x88, 0x00])));
             cpu.index_register_x = 0x02;
@@ -527,6 +528,7 @@ mod ldx {
             assert_eq!(cpu.index_register_x, 0x55);
         }
 
+        #[test]
         fn should_overflow_over_byte_when_summing_address_from_memory_with_register_y() {
             let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x88, 0x00])));
             cpu.index_register_y = 0x02;
@@ -534,7 +536,7 @@ mod ldx {
 
             ldx_zpy(&mut cpu);
 
-            assert_eq!(cpu.accumulator, 0x88);
+            assert_eq!(cpu.index_register_x, 0x88);
         }
 
         #[test]
@@ -783,6 +785,8 @@ mod ldy {
             assert_eq!(cpu.index_register_y, 0x55);
         }
 
+        
+        #[test]
         fn should_overflow_over_byte_when_summing_address_from_memory_with_register_x() {
             let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x88, 0x00])));
             cpu.index_register_x = 0x02;
@@ -790,7 +794,7 @@ mod ldy {
 
             ldy_zpx(&mut cpu);
 
-            assert_eq!(cpu.accumulator, 0x88);
+            assert_eq!(cpu.index_register_y, 0x88);
         }
 
         #[test]
@@ -960,8 +964,10 @@ mod jsr_a {
         assert_eq!(cpu.program_counter, 0x5144);
     }
 
+    #[test]
     fn should_save_program_counter_after_fetching_new_adress_minus_one_into_stack_pointer() {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x44, 0x51, 0x88])));
+        cpu.program_counter = 0x00;
         cpu.stack_pointer = 0x00;
 
         jsr_a(&mut cpu);
