@@ -103,8 +103,7 @@ pub fn jsr_a(cpu: &mut CPU) {
 }
 
 pub fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
-    let address = cpu.get_address(&addr_mode);
-    cpu.program_counter = address;
+    cpu.program_counter = cpu.get_address(&addr_mode);
 }
 
 pub fn jmp_a(cpu: &mut CPU) {
