@@ -30,6 +30,8 @@ const INSTRUCTION_JMP_A: Byte = 0x4C;
 const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
 
+const STACK_PAGE_MSB: Word = 0x0100;
+
 enum Flags {
     Zero = 1,
     DecimalMode = 3,
@@ -155,13 +157,8 @@ impl CPU {
         self.cycle += 1;
     }
 
-    fn decrement_program_counter(&mut self) {
-        self.program_counter = self.program_counter.wrapping_sub(1);
-        self.cycle += 1;
-    }
-
-    fn increment_stack_pointer(&mut self) {
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+    fn decrement_stack_pointer(&mut self) {
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
 
     fn fetch_byte_with_offset(&mut self, addr: Word, offset: Byte) -> Byte {
@@ -259,10 +256,10 @@ impl CPU {
     }
 
     fn push_byte_to_stack(&mut self, val: Byte) {
-        let stack_addr: Word = 0x0100 | (self.stack_pointer as u16);
+        let stack_addr: Word = STACK_PAGE_MSB | (self.stack_pointer as u16);
         self.memory[stack_addr] = val;
-        self.increment_stack_pointer();
-        self.increment_program_counter();
+        self.decrement_stack_pointer();
+        self.cycle += 1;
     }
 
     fn push_word_to_stack(&mut self, val: Word) {

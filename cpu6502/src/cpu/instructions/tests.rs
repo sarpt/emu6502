@@ -785,7 +785,6 @@ mod ldy {
             assert_eq!(cpu.index_register_y, 0x55);
         }
 
-        
         #[test]
         fn should_overflow_over_byte_when_summing_address_from_memory_with_register_x() {
             let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x88, 0x00])));
@@ -958,6 +957,7 @@ mod jsr_a {
     fn should_fetch_address_pointed_by_program_counter_and_put_in_program_counter() {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x44, 0x51, 0x88])));
         cpu.program_counter = 0x00;
+        cpu.stack_pointer = 0xFF;
 
         jsr_a(&mut cpu);
 
@@ -965,18 +965,30 @@ mod jsr_a {
     }
 
     #[test]
-    fn should_save_program_counter_after_fetching_new_adress_minus_one_into_stack_pointer() {
+    fn should_save_program_counter_shifted_once_into_stack_pointer() {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x44, 0x51, 0x88])));
         cpu.program_counter = 0x00;
-        cpu.stack_pointer = 0x00;
+        cpu.stack_pointer = 0xFF;
 
         jsr_a(&mut cpu);
 
-        assert_eq!(cpu.stack_pointer, 0x02);
+        assert_eq!(cpu.memory[0x01FF], 0x01);
+        assert_eq!(cpu.memory[0x01FE], 0x00);
     }
 
     #[test]
-    fn should_take_six_cycles() {
+    fn should_decrement_stack_pointer_twice() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x44, 0x51, 0x88])));
+        cpu.program_counter = 0x00;
+        cpu.stack_pointer = 0xFF;
+
+        jsr_a(&mut cpu);
+
+        assert_eq!(cpu.stack_pointer, 0xFD);
+    }
+
+    #[test]
+    fn should_take_five_cycles() {
         let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x44, 0x51, 0x88])));
         cpu.program_counter = 0x00;
         cpu.cycle = 0;

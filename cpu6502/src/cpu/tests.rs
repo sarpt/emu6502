@@ -242,18 +242,18 @@ mod push_byte_to_stack {
     #[test]
     fn should_push_a_byte_to_a_place_to_the_first_page_in_memory_pointed_by_a_stack_pointer() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.stack_pointer = 0x0002;
+        uut.stack_pointer = 0xFF;
 
         let value: u8 = 0xDF;
         uut.push_byte_to_stack(value);
 
-        assert_eq!(uut.memory[0x0102], 0xDF);
+        assert_eq!(uut.memory[0x01FF], 0xDF);
     }
 
     #[test]
-    fn should_increase_cycle_counter_and_stack_pointer_by_one() {
+    fn should_increase_cycle_counter_and_decrease_stack_pointer_by_one() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.stack_pointer = 0x0002;
+        uut.stack_pointer = 0xFF;
 
         assert_eq!(uut.cycle, 0);
 
@@ -261,7 +261,7 @@ mod push_byte_to_stack {
         uut.push_byte_to_stack(value);
 
         assert_eq!(uut.cycle, 1);
-        assert_eq!(uut.stack_pointer, 0x0003);
+        assert_eq!(uut.stack_pointer, 0xFE);
     }
 }
 
@@ -273,26 +273,26 @@ mod push_word_to_stack {
     #[test]
     fn should_push_a_byte_to_a_place_to_the_first_page_in_memory_pointed_by_a_stack_pointer() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.stack_pointer = 0x0002;
+        uut.stack_pointer = 0xFF;
 
         let value: u16 = 0x56DF;
         uut.push_word_to_stack(value);
 
-        assert_eq!(uut.memory[0x0102], 0xDF);
-        assert_eq!(uut.memory[0x0103], 0x56);
+        assert_eq!(uut.memory[0x01FF], 0xDF);
+        assert_eq!(uut.memory[0x01FE], 0x56);
     }
 
     #[test]
-    fn should_increase_cycle_counter_and_stack_pointer_by_two() {
+    fn should_increase_cycle_counter_and_decrease_stack_pointer_by_two() {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
-        uut.stack_pointer = 0x0002;
+        uut.stack_pointer = 0xFF;
         assert_eq!(uut.cycle, 0);
 
         let value: u16 = 0x56DF;
         uut.push_word_to_stack(value);
 
         assert_eq!(uut.cycle, 2);
-        assert_eq!(uut.stack_pointer, 0x0004);
+        assert_eq!(uut.stack_pointer, 0xFD);
     }
 }
 
@@ -452,7 +452,7 @@ mod get_address {
     #[cfg(test)]
     mod immediate_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
         fn should_return_program_counter_address() {
@@ -489,7 +489,7 @@ mod get_address {
     #[cfg(test)]
     mod absolute_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
         fn should_return_address_from_next_word_in_memory_relative_to_program_counter() {
@@ -526,7 +526,7 @@ mod get_address {
     #[cfg(test)]
     mod absolute_x_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
         fn should_return_address_from_next_word_in_memory_relative_to_program_counter() {
@@ -563,7 +563,7 @@ mod get_address {
     #[cfg(test)]
     mod absolute_y_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
         fn should_return_address_from_next_word_in_memory_relative_to_program_counter() {
@@ -600,10 +600,11 @@ mod get_address {
     #[cfg(test)]
     mod zero_page_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
-        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter() {
+        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter()
+        {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
@@ -637,10 +638,11 @@ mod get_address {
     #[cfg(test)]
     mod zero_page_x_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
-        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter_summed_with_index_register_x() {
+        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter_summed_with_index_register_x(
+        ) {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
             uut.index_register_x = 0x03;
@@ -677,10 +679,11 @@ mod get_address {
     #[cfg(test)]
     mod zero_page_y_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
-        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter_summed_with_index_register_y() {
+        fn should_return_address_in_zero_page_from_next_byte_in_memory_relative_to_program_counter_summed_with_index_register_y(
+        ) {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x03;
             uut.index_register_y = 0x03;
@@ -717,10 +720,11 @@ mod get_address {
     #[cfg(test)]
     mod index_indirect_x_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
-        fn should_return_address_stored_in_place_pointed_by_zero_page_address_in_next_byte_relative_to_program_counter_summed_with_index_register_x() {
+        fn should_return_address_stored_in_place_pointed_by_zero_page_address_in_next_byte_relative_to_program_counter_summed_with_index_register_x(
+        ) {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x01, 0xFF, 0x03, 0xDD, 0x25])));
             uut.program_counter = 0x00;
             uut.index_register_x = 0x01;
@@ -757,10 +761,11 @@ mod get_address {
     #[cfg(test)]
     mod indirect_index_y_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
-        fn should_return_address_stored_in_place_pointed_by_zero_page_address_in_next_byte_relative_to_program_counter() {
+        fn should_return_address_stored_in_place_pointed_by_zero_page_address_in_next_byte_relative_to_program_counter(
+        ) {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0xFF, 0x03, 0xDD, 0x25])));
             uut.program_counter = 0x00;
 
@@ -794,10 +799,11 @@ mod get_address {
     #[cfg(test)]
     mod indirect_addressing {
         use super::super::MemoryMock;
-        use crate::cpu::{CPU, AddressingMode};
+        use crate::cpu::{AddressingMode, CPU};
 
         #[test]
-        fn should_return_address_from_place_in_memory_stored_in_next_word_relative_to_program_counter() {
+        fn should_return_address_from_place_in_memory_stored_in_next_word_relative_to_program_counter(
+        ) {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
