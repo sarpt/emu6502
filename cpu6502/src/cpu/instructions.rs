@@ -95,11 +95,15 @@ pub fn ldx_a_y(cpu: &mut CPU) {
 }
 
 pub fn jsr_a(cpu: &mut CPU) {
-    // TODO: this one is incorrect, stack should decrement not incremenet
-    let jump_addr = cpu.fetch_address();
-    cpu.decrement_program_counter();
+    let jump_addr_lsb = cpu.fetch_zero_page_address();
+    let jump_addr_msb: u16 = cpu.access_memory(cpu.program_counter).into();
+    cpu.cycle += 1;
+
     cpu.push_word_to_stack(cpu.program_counter);
+
+    let jump_addr = (jump_addr_msb << 8) | jump_addr_lsb;
     cpu.program_counter = jump_addr;
+    cpu.cycle += 1;
 }
 
 pub fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
