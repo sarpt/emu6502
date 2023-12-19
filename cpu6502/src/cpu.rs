@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use self::instructions::*;
 use super::consts::{Byte, Word};
-use crate::memory::Memory;
+use crate::{memory::Memory, consts::STACK_PAGE_HI};
 
 mod instructions;
 
@@ -29,8 +29,7 @@ const INSTRUCTION_LDX_A_Y: Byte = 0xBE;
 const INSTRUCTION_JMP_A: Byte = 0x4C;
 const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
-
-const STACK_PAGE_MSB: Word = 0x0100;
+const INSTRUCTION_RTS: Byte = 0x60;
 
 enum Flags {
     Zero = 1,
@@ -45,6 +44,7 @@ struct ProcessorStatus {
 enum AddressingMode {
     Immediate,
     Indirect,
+    Implicit,
     ZeroPage,
     ZeroPageX,
     ZeroPageY,
@@ -123,6 +123,7 @@ impl CPU {
             (INSTRUCTION_JMP_A, jmp_a as OpcodeHandler),
             (INSTRUCTION_JMP_IN, jmp_in as OpcodeHandler),
             (INSTRUCTION_JSR_A, jsr_a as OpcodeHandler),
+            (INSTRUCTION_RTS, rts as OpcodeHandler),
         ]);
 
         return CPU {
@@ -157,23 +158,25 @@ impl CPU {
         self.cycle += 1;
     }
 
+    fn increment_stack_pointer(&mut self) {
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+    }
+
     fn decrement_stack_pointer(&mut self) {
         self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
 
     fn fetch_byte_with_offset(&mut self, addr: Word, offset: Byte) -> Byte {
-        let lsb: u8 = (addr) as u8;
-        let mut msb: u8 = (addr >> 8) as u8; // change to "to_le_bytes"
-
-        let (new_lsb, carry) = lsb.overflowing_add(offset);
-        let mut address = ((msb as u16) << 8) | new_lsb as u16;
+        let [lo, mut hi] = addr.to_le_bytes();
+        let (new_lo, carry) = lo.overflowing_add(offset);
+        let mut address = Word::from_le_bytes([new_lo, hi]);
         self.cycle += 1;
         if !carry {
             return self.access_memory(address);
         };
 
-        msb = msb.wrapping_add(1);
-        address = ((msb as u16) << 8) | new_lsb as u16;
+        hi = hi.wrapping_add(1);
+        address = ((hi as u16) << 8) | new_lo as u16;
         self.cycle += 1;
         return self.access_memory(address);
     }
@@ -186,21 +189,21 @@ impl CPU {
     }
 
     fn fetch_address(&mut self) -> Word {
-        let lsb: Word = self.access_memory(self.program_counter).into();
+        let lo = self.access_memory(self.program_counter);
         self.increment_program_counter();
-        let msb: Word = self.access_memory(self.program_counter).into();
+        let hi = self.access_memory(self.program_counter);
         self.increment_program_counter();
 
-        return (msb << 8) | lsb;
+        return Word::from_le_bytes([lo, hi]);
     }
 
     fn fetch_address_from(&mut self, addr: Word) -> Word {
-        let lsb: Word = self.access_memory(addr).into();
+        let lo = self.access_memory(addr);
         self.cycle += 1;
-        let msb: Word = self.access_memory(addr + 1).into();
+        let hi = self.access_memory(addr + 1);
         self.cycle += 1;
 
-        return (msb << 8) | lsb;
+        return Word::from_le_bytes([lo, hi]);
     }
 
     fn fetch_zero_page_address(&mut self) -> Word {
@@ -256,17 +259,32 @@ impl CPU {
     }
 
     fn push_byte_to_stack(&mut self, val: Byte) {
-        let stack_addr: Word = STACK_PAGE_MSB | (self.stack_pointer as u16);
+        let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
         self.memory[stack_addr] = val;
         self.decrement_stack_pointer();
         self.cycle += 1;
     }
 
     fn push_word_to_stack(&mut self, val: Word) {
-        let lsb: u8 = (val) as u8;
-        let msb: u8 = (val >> 8) as u8; // change to "to_le_bytes"
-        self.push_byte_to_stack(lsb);
-        self.push_byte_to_stack(msb);
+        let [lo, hi] = val.to_le_bytes();
+        self.push_byte_to_stack(lo);
+        self.push_byte_to_stack(hi);
+    }
+
+    fn pop_byte_from_stack(&mut self) -> Byte {
+        let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
+        self.increment_stack_pointer();
+        let val = self.memory[stack_addr];
+        self.cycle += 1;
+
+        return val;
+    }
+
+    fn pop_word_from_stack(&mut self) -> Word {
+        let lo = self.pop_byte_from_stack();
+        let hi = self.pop_byte_from_stack();
+    
+        return Word::from_le_bytes([lo, hi]);
     }
 
     pub fn set_memory(&mut self, memory: Box<dyn Memory>) {
@@ -274,7 +292,7 @@ impl CPU {
     }
 
     fn get_address(&mut self, addr_mode: &AddressingMode) -> Word {
-        let mut address: Word;
+        let mut address: Word = 0x0;
 
         match addr_mode {
             AddressingMode::ZeroPage | AddressingMode::IndirectIndexY => {
@@ -294,7 +312,8 @@ impl CPU {
             }
             AddressingMode::Immediate => {
                 address = self.program_counter;
-            }
+            },
+            AddressingMode::Implicit => {}
         }
 
         match addr_mode {
@@ -307,9 +326,9 @@ impl CPU {
                     return self.fetch_address_from(address);
                 };
 
-                let lsb: Word = self.access_memory(address).into();
-                let msb: Word = self.access_memory(address & 0x1100).into();
-                let incorrect_jmp_address = (msb << 8) | lsb;
+                let hi = self.access_memory(address);
+                let lo = self.access_memory(address & 0x1100);
+                let incorrect_jmp_address = Word::from_le_bytes([hi, lo]);
 
                 return incorrect_jmp_address;
             }

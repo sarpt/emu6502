@@ -95,15 +95,22 @@ pub fn ldx_a_y(cpu: &mut CPU) {
 }
 
 pub fn jsr_a(cpu: &mut CPU) {
-    let jump_addr_lsb = cpu.fetch_zero_page_address();
-    let jump_addr_msb: u16 = cpu.access_memory(cpu.program_counter).into();
+    let jump_addr_hi = cpu.fetch_zero_page_address();
+    let jump_addr_lo: u16 = cpu.access_memory(cpu.program_counter).into();
     cpu.cycle += 1;
 
     cpu.push_word_to_stack(cpu.program_counter);
 
-    let jump_addr = (jump_addr_msb << 8) | jump_addr_lsb;
-    cpu.program_counter = jump_addr;
+    cpu.program_counter = (jump_addr_lo << 8) | jump_addr_hi;
     cpu.cycle += 1;
+}
+
+pub fn rts(cpu: &mut CPU) {
+    cpu.access_memory(cpu.program_counter); // fetch and discard
+    cpu.cycle += 1;    
+
+    cpu.program_counter = cpu.pop_word_from_stack();
+    cpu.increment_program_counter();
 }
 
 pub fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
