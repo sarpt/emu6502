@@ -110,6 +110,7 @@ pub fn rts(cpu: &mut CPU) {
     cpu.cycle += 1;    
 
     cpu.program_counter = cpu.pop_word_from_stack();
+    cpu.cycle += 1;
     cpu.increment_program_counter();
 }
 

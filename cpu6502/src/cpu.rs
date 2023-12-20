@@ -272,10 +272,10 @@ impl CPU {
     }
 
     fn pop_byte_from_stack(&mut self) -> Byte {
-        let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
         self.increment_stack_pointer();
-        let val = self.memory[stack_addr];
+        let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
         self.cycle += 1;
+        let val = self.memory[stack_addr];
 
         return val;
     }

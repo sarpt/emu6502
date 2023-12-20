@@ -306,7 +306,7 @@ mod pop_byte_from_stack {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.memory[0x01FF] = 0xDF;
         uut.memory[0x01FE] = 0x48;
-        uut.stack_pointer = 0xFE;
+        uut.stack_pointer = 0xFD;
 
         let value = uut.pop_byte_from_stack();
 
@@ -318,14 +318,14 @@ mod pop_byte_from_stack {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.memory[0x01FF] = 0xDF;
         uut.memory[0x01FE] = 0x48;
-        uut.stack_pointer = 0xFE;
+        uut.stack_pointer = 0xFD;
 
         assert_eq!(uut.cycle, 0);
 
         uut.pop_byte_from_stack();
 
         assert_eq!(uut.cycle, 1);
-        assert_eq!(uut.stack_pointer, 0xFF);
+        assert_eq!(uut.stack_pointer, 0xFE);
     }
 }
 
@@ -339,7 +339,7 @@ mod pop_word_from_stack {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.memory[0x01FF] = 0xDF;
         uut.memory[0x01FE] = 0x48;
-        uut.stack_pointer = 0xFE;
+        uut.stack_pointer = 0xFD;
 
         let val = uut.pop_word_from_stack();
 
@@ -351,13 +351,13 @@ mod pop_word_from_stack {
         let mut uut = CPU::new(Box::new(MemoryMock::default()));
         uut.memory[0x01FF] = 0xDF;
         uut.memory[0x01FE] = 0x48;
-        uut.stack_pointer = 0xFE;
+        uut.stack_pointer = 0xFD;
         assert_eq!(uut.cycle, 0);
 
         uut.pop_word_from_stack();
 
         assert_eq!(uut.cycle, 2);
-        assert_eq!(uut.stack_pointer, 0x00);
+        assert_eq!(uut.stack_pointer, 0xFF);
     }
 }
 
