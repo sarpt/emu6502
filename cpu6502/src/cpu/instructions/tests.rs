@@ -1000,6 +1000,52 @@ mod jsr_a {
 }
 
 #[cfg(test)]
+mod rts {
+    use super::super::*;
+    use crate::cpu::tests::MemoryMock;
+
+    #[test]
+    fn should_fetch_address_from_stack_and_put_it_in_program_counter_incremented_by_one() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x02, 0x03])));
+        cpu.program_counter = 0x00;
+        cpu.memory[0x01FF] = 0x44;
+        cpu.memory[0x01FE] = 0x51;
+        cpu.stack_pointer = 0xFD;
+
+        rts(&mut cpu);
+
+        assert_eq!(cpu.program_counter, 0x4452);
+    }
+
+    #[test]
+    fn should_increment_stack_pointer_twice() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x02, 0x03])));
+        cpu.program_counter = 0x00;
+        cpu.memory[0x01FF] = 0x44;
+        cpu.memory[0x01FE] = 0x51;
+        cpu.stack_pointer = 0xFD;
+
+        rts(&mut cpu);
+
+        assert_eq!(cpu.stack_pointer, 0xFF);
+    }
+
+    #[test]
+    fn should_take_five_cycles() {
+        let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x02, 0x03])));
+        cpu.program_counter = 0x00;
+        cpu.memory[0x01FF] = 0x44;
+        cpu.memory[0x01FE] = 0x51;
+        cpu.stack_pointer = 0xFD;
+        cpu.cycle = 0;
+
+        rts(&mut cpu);
+
+        assert_eq!(cpu.cycle, 5);
+    }
+}
+
+#[cfg(test)]
 mod jmp_a {
     use super::super::*;
     use crate::cpu::tests::MemoryMock;

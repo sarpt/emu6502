@@ -297,6 +297,71 @@ mod push_word_to_stack {
 }
 
 #[cfg(test)]
+mod pop_byte_from_stack {
+    use super::MemoryMock;
+    use crate::cpu::CPU;
+
+    #[test]
+    fn should_pop_byte_from_stack() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.memory[0x01FF] = 0xDF;
+        uut.memory[0x01FE] = 0x48;
+        uut.stack_pointer = 0xFD;
+
+        let value = uut.pop_byte_from_stack();
+
+        assert_eq!(value, 0x48);
+    }
+
+    #[test]
+    fn should_increment_cycle_count_and_stack_pointer_once() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.memory[0x01FF] = 0xDF;
+        uut.memory[0x01FE] = 0x48;
+        uut.stack_pointer = 0xFD;
+
+        assert_eq!(uut.cycle, 0);
+
+        uut.pop_byte_from_stack();
+
+        assert_eq!(uut.cycle, 1);
+        assert_eq!(uut.stack_pointer, 0xFE);
+    }
+}
+
+#[cfg(test)]
+mod pop_word_from_stack {
+    use super::MemoryMock;
+    use crate::cpu::CPU;
+
+    #[test]
+    fn should_pop_word_from_stack() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.memory[0x01FF] = 0xDF;
+        uut.memory[0x01FE] = 0x48;
+        uut.stack_pointer = 0xFD;
+
+        let val = uut.pop_word_from_stack();
+
+        assert_eq!(val, 0xDF48);
+    }
+
+    #[test]
+    fn should_increment_cycle_count_and_stack_pointer_twice() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.memory[0x01FF] = 0xDF;
+        uut.memory[0x01FE] = 0x48;
+        uut.stack_pointer = 0xFD;
+        assert_eq!(uut.cycle, 0);
+
+        uut.pop_word_from_stack();
+
+        assert_eq!(uut.cycle, 2);
+        assert_eq!(uut.stack_pointer, 0xFF);
+    }
+}
+
+#[cfg(test)]
 mod sum_with_x {
     use super::MemoryMock;
     use crate::cpu::CPU;
