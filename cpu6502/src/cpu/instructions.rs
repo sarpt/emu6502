@@ -1,9 +1,10 @@
-use crate::consts::{Byte, Word};
-
 use super::{AddressingMode, Register, CPU};
 
 pub fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
-    let address = cpu.get_address(&addr_mode);
+    let address = match cpu.get_address(&addr_mode) {
+        Some(address) => address,
+        None => panic!("ld used with incorrect address mode"),
+    };
 
     let value = match addr_mode {
         AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
@@ -117,7 +118,10 @@ pub fn rts(cpu: &mut CPU) {
 }
 
 pub fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
-    cpu.program_counter = cpu.get_address(&addr_mode);
+    match cpu.get_address(&addr_mode) {
+        Some(address) => cpu.program_counter = address,
+        None => panic!("jmp used with incorrect addressing mode"),
+    }
 }
 
 pub fn jmp_a(cpu: &mut CPU) {
@@ -135,33 +139,7 @@ pub fn beq(cpu: &mut CPU) {
         return;
     }
 
-    let [program_counter_lo, program_counter_hi] = cpu.program_counter.to_le_bytes();
-    let negative_offset_direction = 0b10000000 & operand > 0;
-    let offset = 0b01111111 & operand;
-    let offset_program_counter_lo: Byte;
-    let carry: bool;
-
-    if negative_offset_direction {
-        (offset_program_counter_lo, carry) = program_counter_lo.overflowing_sub(offset);
-    } else {
-        (offset_program_counter_lo, carry) = program_counter_lo.overflowing_add(offset);
-    }
-
-    cpu.program_counter = Word::from_le_bytes([offset_program_counter_lo, program_counter_hi]);
-    cpu.cycle += 1;
-    if !carry {
-        return;
-    }
-
-    let offset_program_counter_hi: Byte;
-    if negative_offset_direction {
-        offset_program_counter_hi = program_counter_hi.wrapping_sub(1);
-    } else {
-        offset_program_counter_hi = program_counter_hi.wrapping_add(1);
-    }
-    cpu.program_counter =
-        Word::from_le_bytes([offset_program_counter_lo, offset_program_counter_hi]);
-    cpu.cycle += 1;
+    cpu.offset_program_counter(operand)
 }
 
 #[cfg(test)]

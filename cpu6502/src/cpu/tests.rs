@@ -526,7 +526,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::Immediate);
 
-            assert_eq!(result, 0xCB);
+            assert_eq!(result.unwrap(), 0xCB);
         }
 
         #[test]
@@ -563,7 +563,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::Absolute);
 
-            assert_eq!(result, 0xCBFF);
+            assert_eq!(result.unwrap(), 0xCBFF);
         }
 
         #[test]
@@ -600,7 +600,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::AbsoluteX);
 
-            assert_eq!(result, 0x52CB);
+            assert_eq!(result.unwrap(), 0x52CB);
         }
 
         #[test]
@@ -637,7 +637,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::AbsoluteY);
 
-            assert_eq!(result, 0x52CB);
+            assert_eq!(result.unwrap(), 0x52CB);
         }
 
         #[test]
@@ -675,7 +675,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::ZeroPage);
 
-            assert_eq!(result, 0x00CB);
+            assert_eq!(result.unwrap(), 0x00CB);
         }
 
         #[test]
@@ -714,7 +714,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::ZeroPageX);
 
-            assert_eq!(result, 0x00CE);
+            assert_eq!(result.unwrap(), 0x00CE);
         }
 
         #[test]
@@ -755,7 +755,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::ZeroPageY);
 
-            assert_eq!(result, 0x0055);
+            assert_eq!(result.unwrap(), 0x0055);
         }
 
         #[test]
@@ -796,7 +796,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::IndexIndirectX);
 
-            assert_eq!(result, 0xDD03);
+            assert_eq!(result.unwrap(), 0xDD03);
         }
 
         #[test]
@@ -836,7 +836,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::IndirectIndexY);
 
-            assert_eq!(result, 0xDD03);
+            assert_eq!(result.unwrap(), 0xDD03);
         }
 
         #[test]
@@ -874,7 +874,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::Indirect);
 
-            assert_eq!(result, 0x0001);
+            assert_eq!(result.unwrap(), 0x0001);
         }
 
         #[test]
@@ -906,7 +906,7 @@ mod get_address {
 
             let result = uut.get_address(&AddressingMode::Indirect);
 
-            assert_eq!(result, 0xFF00);
+            assert_eq!(result.unwrap(), 0xFF00);
         }
     }
 }
