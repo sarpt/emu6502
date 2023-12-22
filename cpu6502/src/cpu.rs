@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use self::instructions::*;
 use super::consts::{Byte, Word};
-use crate::{memory::Memory, consts::STACK_PAGE_HI};
+use crate::{consts::STACK_PAGE_HI, memory::Memory};
 
 mod instructions;
 
@@ -70,6 +70,10 @@ impl ProcessorStatus {
         self.set_flag(Flags::Zero, value_set);
     }
 
+    pub fn get_zero_flag(&self) -> bool {
+        return self.get_flag(Flags::Zero);
+    }
+
     pub fn set_negative_flag(&mut self, value_set: bool) {
         self.set_flag(Flags::Negative, value_set);
     }
@@ -81,6 +85,11 @@ impl ProcessorStatus {
         } else {
             self.flags &= !(1 << shift);
         }
+    }
+
+    fn get_flag(&self, flag: Flags) -> bool {
+        let shift: u8 = flag as u8;
+        return (self.flags & (1 << shift)) > 0;
     }
 }
 
@@ -283,7 +292,7 @@ impl CPU {
     fn pop_word_from_stack(&mut self) -> Word {
         let lo = self.pop_byte_from_stack();
         let hi = self.pop_byte_from_stack();
-    
+
         return Word::from_le_bytes([lo, hi]);
     }
 
@@ -312,7 +321,7 @@ impl CPU {
             }
             AddressingMode::Immediate => {
                 address = self.program_counter;
-            },
+            }
             AddressingMode::Implicit => {}
         }
 
