@@ -1,7 +1,10 @@
 use super::{AddressingMode, Register, CPU};
 
 pub fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
-    let address = cpu.get_address(&addr_mode);
+    let address = match cpu.get_address(&addr_mode) {
+        Some(address) => address,
+        None => panic!("ld used with incorrect address mode"),
+    };
 
     let value = match addr_mode {
         AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
@@ -107,7 +110,7 @@ pub fn jsr_a(cpu: &mut CPU) {
 
 pub fn rts(cpu: &mut CPU) {
     cpu.access_memory(cpu.program_counter); // fetch and discard
-    cpu.cycle += 1;    
+    cpu.cycle += 1;
 
     cpu.program_counter = cpu.pop_word_from_stack();
     cpu.cycle += 1;
@@ -115,7 +118,10 @@ pub fn rts(cpu: &mut CPU) {
 }
 
 pub fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
-    cpu.program_counter = cpu.get_address(&addr_mode);
+    match cpu.get_address(&addr_mode) {
+        Some(address) => cpu.program_counter = address,
+        None => panic!("jmp used with incorrect addressing mode"),
+    }
 }
 
 pub fn jmp_a(cpu: &mut CPU) {
@@ -124,6 +130,16 @@ pub fn jmp_a(cpu: &mut CPU) {
 
 pub fn jmp_in(cpu: &mut CPU) {
     jmp(cpu, AddressingMode::Indirect);
+}
+
+pub fn beq(cpu: &mut CPU) {
+    let operand = cpu.access_memory(cpu.program_counter);
+    cpu.increment_program_counter();
+    if !cpu.processor_status.get_zero_flag() {
+        return;
+    }
+
+    cpu.offset_program_counter(operand)
 }
 
 #[cfg(test)]

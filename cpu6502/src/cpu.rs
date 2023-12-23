@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use self::instructions::*;
 use super::consts::{Byte, Word};
-use crate::{memory::Memory, consts::STACK_PAGE_HI};
+use crate::{consts::STACK_PAGE_HI, memory::Memory};
 
 mod instructions;
 
@@ -30,6 +30,7 @@ const INSTRUCTION_JMP_A: Byte = 0x4C;
 const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
 const INSTRUCTION_RTS: Byte = 0x60;
+const INSTRUCTION_BEQ: Byte = 0xF0;
 
 enum Flags {
     Zero = 1,
@@ -45,6 +46,7 @@ enum AddressingMode {
     Immediate,
     Indirect,
     Implicit,
+    Relative,
     ZeroPage,
     ZeroPageX,
     ZeroPageY,
@@ -70,6 +72,10 @@ impl ProcessorStatus {
         self.set_flag(Flags::Zero, value_set);
     }
 
+    pub fn get_zero_flag(&self) -> bool {
+        return self.get_flag(Flags::Zero);
+    }
+
     pub fn set_negative_flag(&mut self, value_set: bool) {
         self.set_flag(Flags::Negative, value_set);
     }
@@ -81,6 +87,11 @@ impl ProcessorStatus {
         } else {
             self.flags &= !(1 << shift);
         }
+    }
+
+    fn get_flag(&self, flag: Flags) -> bool {
+        let shift: u8 = flag as u8;
+        return (self.flags & (1 << shift)) > 0;
     }
 }
 
@@ -124,6 +135,7 @@ impl CPU {
             (INSTRUCTION_JMP_IN, jmp_in as OpcodeHandler),
             (INSTRUCTION_JSR_A, jsr_a as OpcodeHandler),
             (INSTRUCTION_RTS, rts as OpcodeHandler),
+            (INSTRUCTION_BEQ, beq as OpcodeHandler),
         ]);
 
         return CPU {
@@ -283,7 +295,7 @@ impl CPU {
     fn pop_word_from_stack(&mut self) -> Word {
         let lo = self.pop_byte_from_stack();
         let hi = self.pop_byte_from_stack();
-    
+
         return Word::from_le_bytes([lo, hi]);
     }
 
@@ -291,51 +303,76 @@ impl CPU {
         self.memory = memory;
     }
 
-    fn get_address(&mut self, addr_mode: &AddressingMode) -> Word {
-        let mut address: Word = 0x0;
+    pub fn offset_program_counter(&mut self, offset: u8) {
+        let [program_counter_lo, program_counter_hi] = self.program_counter.to_le_bytes();
+        let negative_offset_direction = 0b10000000 & offset > 0;
+        let offset = 0b01111111 & offset;
+        let offset_program_counter_lo: Byte;
+        let carry: bool;
 
-        match addr_mode {
-            AddressingMode::ZeroPage | AddressingMode::IndirectIndexY => {
-                address = self.fetch_zero_page_address();
-            }
-            AddressingMode::ZeroPageY => {
-                address = self.fetch_zero_page_address_with_y_offset();
-            }
-            AddressingMode::ZeroPageX | AddressingMode::IndexIndirectX => {
-                address = self.fetch_zero_page_address_with_x_offset();
-            }
-            AddressingMode::Absolute
-            | AddressingMode::AbsoluteX
-            | AddressingMode::AbsoluteY
-            | AddressingMode::Indirect => {
-                address = self.fetch_address();
-            }
-            AddressingMode::Immediate => {
-                address = self.program_counter;
-            },
-            AddressingMode::Implicit => {}
+        if negative_offset_direction {
+            (offset_program_counter_lo, carry) = program_counter_lo.overflowing_sub(offset);
+        } else {
+            (offset_program_counter_lo, carry) = program_counter_lo.overflowing_add(offset);
         }
 
+        self.program_counter = Word::from_le_bytes([offset_program_counter_lo, program_counter_hi]);
+        self.cycle += 1;
+        if !carry {
+            return;
+        }
+
+        let offset_program_counter_hi: Byte;
+        if negative_offset_direction {
+            offset_program_counter_hi = program_counter_hi.wrapping_sub(1);
+        } else {
+            offset_program_counter_hi = program_counter_hi.wrapping_add(1);
+        }
+        self.program_counter =
+            Word::from_le_bytes([offset_program_counter_lo, offset_program_counter_hi]);
+        self.cycle += 1;
+    }
+
+    fn get_address(&mut self, addr_mode: &AddressingMode) -> Option<Word> {
         match addr_mode {
-            AddressingMode::IndexIndirectX | AddressingMode::IndirectIndexY => {
-                address = self.fetch_address_from(address);
+            AddressingMode::ZeroPage => {
+                return Some(self.fetch_zero_page_address());
+            }
+            AddressingMode::IndexIndirectX => {
+                let address = self.fetch_zero_page_address_with_x_offset();
+                return Some(self.fetch_address_from(address));
+            }
+            AddressingMode::IndirectIndexY => {
+                let address = self.fetch_zero_page_address();
+                return Some(self.fetch_address_from(address));
+            }
+            AddressingMode::ZeroPageY => {
+                return Some(self.fetch_zero_page_address_with_y_offset());
+            }
+            AddressingMode::ZeroPageX => {
+                return Some(self.fetch_zero_page_address_with_x_offset());
+            }
+            AddressingMode::Absolute | AddressingMode::AbsoluteX | AddressingMode::AbsoluteY => {
+                return Some(self.fetch_address());
             }
             AddressingMode::Indirect => {
+                let address = self.fetch_address();
                 let should_incorrectly_jump = address & 0x00FF == 0x00FF;
                 if !should_incorrectly_jump {
-                    return self.fetch_address_from(address);
+                    return Some(self.fetch_address_from(address));
                 };
 
                 let hi = self.access_memory(address);
                 let lo = self.access_memory(address & 0x1100);
                 let incorrect_jmp_address = Word::from_le_bytes([hi, lo]);
 
-                return incorrect_jmp_address;
+                return Some(incorrect_jmp_address);
             }
-            _ => {}
+            AddressingMode::Immediate => {
+                return Some(self.program_counter);
+            }
+            _ => None,
         }
-
-        return address;
     }
 
     pub fn execute(&mut self, cycles: u64) -> u64 {
