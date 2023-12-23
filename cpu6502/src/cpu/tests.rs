@@ -909,4 +909,78 @@ mod get_address {
             assert_eq!(result.unwrap(), 0xFF00);
         }
     }
+
+    #[cfg(test)]
+    mod implicit_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{AddressingMode, CPU};
+
+        #[test]
+        fn should_return_none() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x00;
+
+            let result = uut.get_address(&AddressingMode::Implicit);
+
+            assert_eq!(result.is_none(), true);
+        }
+
+        #[test]
+        fn should_not_advance_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x00;
+
+            uut.get_address(&AddressingMode::Implicit);
+
+            assert_eq!(uut.program_counter, 0x00);
+        }
+
+        #[test]
+        fn should_take_zero_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x02;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::Implicit);
+
+            assert_eq!(uut.cycle, 0);
+        }
+    }
+
+    #[cfg(test)]
+    mod relative_addressing {
+        use super::super::MemoryMock;
+        use crate::cpu::{AddressingMode, CPU};
+
+        #[test]
+        fn should_return_none() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x00;
+
+            let result = uut.get_address(&AddressingMode::Relative);
+
+            assert_eq!(result.is_none(), true);
+        }
+
+        #[test]
+        fn should_not_advance_program_counter() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x00;
+
+            uut.get_address(&AddressingMode::Relative);
+
+            assert_eq!(uut.program_counter, 0x00);
+        }
+
+        #[test]
+        fn should_take_zero_cycles() {
+            let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
+            uut.program_counter = 0x02;
+            uut.cycle = 0;
+
+            uut.get_address(&AddressingMode::Relative);
+
+            assert_eq!(uut.cycle, 0);
+        }
+    }
 }
