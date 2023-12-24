@@ -31,8 +31,12 @@ const INSTRUCTION_JMP_IN: Byte = 0x6C;
 const INSTRUCTION_JSR_A: Byte = 0x20;
 const INSTRUCTION_RTS: Byte = 0x60;
 const INSTRUCTION_BEQ: Byte = 0xF0;
+const INSTRUCTION_BCC: Byte = 0x90;
+const INSTRUCTION_BCS: Byte = 0xB0;
+const INSTRUCTION_BNE: Byte = 0xD0;
 
 enum Flags {
+    Carry = 0,
     Zero = 1,
     DecimalMode = 3,
     Negative = 7,
@@ -70,6 +74,14 @@ impl ProcessorStatus {
 
     pub fn set_zero_flag(&mut self, value_set: bool) {
         self.set_flag(Flags::Zero, value_set);
+    }
+
+    pub fn set_carry_flag(&mut self, value_set: bool) {
+        self.set_flag(Flags::Carry, value_set);
+    }
+
+    pub fn get_carry_flag(&self) -> bool {
+        return self.get_flag(Flags::Carry);
     }
 
     pub fn get_zero_flag(&self) -> bool {
@@ -135,7 +147,10 @@ impl CPU {
             (INSTRUCTION_JMP_IN, jmp_in as OpcodeHandler),
             (INSTRUCTION_JSR_A, jsr_a as OpcodeHandler),
             (INSTRUCTION_RTS, rts as OpcodeHandler),
+            (INSTRUCTION_BCC, bcc as OpcodeHandler),
+            (INSTRUCTION_BCS, bcs as OpcodeHandler),
             (INSTRUCTION_BEQ, beq as OpcodeHandler),
+            (INSTRUCTION_BNE, bne as OpcodeHandler),
         ]);
 
         return CPU {
