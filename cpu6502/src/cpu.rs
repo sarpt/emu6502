@@ -34,6 +34,20 @@ const INSTRUCTION_BEQ: Byte = 0xF0;
 const INSTRUCTION_BCC: Byte = 0x90;
 const INSTRUCTION_BCS: Byte = 0xB0;
 const INSTRUCTION_BNE: Byte = 0xD0;
+const INSTRUCTION_CMP_IM: Byte = 0xC9;
+const INSTRUCTION_CMP_ZP: Byte = 0xC5;
+const INSTRUCTION_CMP_ZPX: Byte = 0xD5;
+const INSTRUCTION_CMP_A: Byte = 0xCD;
+const INSTRUCTION_CMP_A_X: Byte = 0xDD;
+const INSTRUCTION_CMP_A_Y: Byte = 0xD9;
+const INSTRUCTION_CMP_IN_X: Byte = 0xC1;
+const INSTRUCTION_CMP_IN_Y: Byte = 0xD1;
+const INSTRUCTION_CPX_IM: Byte = 0xE0;
+const INSTRUCTION_CPX_ZP: Byte = 0xE4;
+const INSTRUCTION_CPX_A: Byte = 0xEC;
+const INSTRUCTION_CPY_IM: Byte = 0xC0;
+const INSTRUCTION_CPY_ZP: Byte = 0xC4;
+const INSTRUCTION_CPY_A: Byte = 0xCC;
 
 enum Flags {
     Carry = 0,
@@ -151,6 +165,20 @@ impl CPU {
             (INSTRUCTION_BCS, bcs as OpcodeHandler),
             (INSTRUCTION_BEQ, beq as OpcodeHandler),
             (INSTRUCTION_BNE, bne as OpcodeHandler),
+            (INSTRUCTION_CMP_IM, cmp_im as OpcodeHandler),
+            (INSTRUCTION_CMP_ZP, cmp_zp as OpcodeHandler),
+            (INSTRUCTION_CMP_ZPX, cmp_zpx as OpcodeHandler),
+            (INSTRUCTION_CMP_A, cmp_a as OpcodeHandler),
+            (INSTRUCTION_CMP_A_X, cmp_a_x as OpcodeHandler),
+            (INSTRUCTION_CMP_A_Y, cmp_a_y as OpcodeHandler),
+            (INSTRUCTION_CMP_IN_X, cmp_in_x as OpcodeHandler),
+            (INSTRUCTION_CMP_IN_Y, cmp_in_y as OpcodeHandler),
+            (INSTRUCTION_CPX_IM, cpx_im as OpcodeHandler),
+            (INSTRUCTION_CPX_ZP, cpx_zp as OpcodeHandler),
+            (INSTRUCTION_CPX_A, cpx_a as OpcodeHandler),
+            (INSTRUCTION_CPY_IM, cpy_im as OpcodeHandler),
+            (INSTRUCTION_CPY_ZP, cpy_zp as OpcodeHandler),
+            (INSTRUCTION_CPY_A, cpy_a as OpcodeHandler),
         ]);
 
         return CPU {
@@ -267,6 +295,21 @@ impl CPU {
         self.processor_status.set_zero_flag(target_register == 0);
         self.processor_status
             .set_negative_flag((target_register & 0b10000000) > 1);
+    }
+
+    fn set_cmp_status(&mut self, register: &Register, value: Byte) {
+        let target_register = match register {
+            Register::Accumulator => self.accumulator,
+            Register::IndexX => self.index_register_x,
+            Register::IndexY => self.index_register_y,
+        };
+
+        self.processor_status
+            .set_carry_flag(target_register >= value);
+        self.processor_status
+            .set_zero_flag(target_register == value);
+        self.processor_status
+            .set_negative_flag(((target_register - value) & 0b10000000) > 1);
     }
 
     fn sum_with_x(&mut self, val: Byte) -> Byte {

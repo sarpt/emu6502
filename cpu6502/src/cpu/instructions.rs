@@ -166,5 +166,81 @@ pub fn beq(cpu: &mut CPU) {
     });
 }
 
+fn compare(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
+    let address = match cpu.get_address(&addr_mode) {
+        Some(address) => address,
+        None => panic!("compare used with incorrect address mode"),
+    };
+
+    let value = match addr_mode {
+        AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
+            cpu.fetch_byte_with_offset(address, cpu.index_register_y)
+        }
+        AddressingMode::AbsoluteX => cpu.fetch_byte_with_offset(address, cpu.index_register_x),
+        _ => {
+            cpu.cycle += 1;
+            cpu.access_memory(address)
+        }
+    };
+
+    cpu.set_cmp_status(&register, value);
+}
+
+pub fn cmp_im(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::Immediate, Register::Accumulator);
+}
+
+pub fn cmp_zp(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::ZeroPage, Register::Accumulator);
+}
+
+pub fn cmp_zpx(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::ZeroPageX, Register::Accumulator);
+}
+
+pub fn cmp_a(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::Absolute, Register::Accumulator);
+}
+
+pub fn cmp_a_x(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::AbsoluteX, Register::Accumulator);
+}
+
+pub fn cmp_a_y(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::AbsoluteY, Register::Accumulator);
+}
+
+pub fn cmp_in_x(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::IndexIndirectX, Register::Accumulator);
+}
+
+pub fn cmp_in_y(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::IndirectIndexY, Register::Accumulator);
+}
+
+pub fn cpx_im(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::Immediate, Register::IndexX);
+}
+
+pub fn cpx_zp(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::ZeroPage, Register::IndexX);
+}
+
+pub fn cpx_a(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::Absolute, Register::IndexX);
+}
+
+pub fn cpy_im(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::Immediate, Register::IndexY);
+}
+
+pub fn cpy_zp(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::ZeroPage, Register::IndexY);
+}
+
+pub fn cpy_a(cpu: &mut CPU) {
+    compare(cpu, AddressingMode::Absolute, Register::IndexY);
+}
+
 #[cfg(test)]
 mod tests;
