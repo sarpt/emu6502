@@ -1557,3 +1557,349 @@ mod bcc {
         assert_eq!(cpu.cycle, 3);
     }
 }
+
+#[cfg(test)]
+mod cmp {
+    #[cfg(test)]
+    mod cmp_im {
+        use crate::cpu::{instructions::cmp_im, tests::MemoryMock, CPU};
+
+        #[test]
+        fn should_compare_accumulator_with_next_byte_from_memory() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF])));
+            cpu.accumulator = 0x02;
+            cpu.program_counter = 0x00;
+
+            cmp_im(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_one_cycle() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF])));
+            cpu.accumulator = 0x02;
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            cmp_im(&mut cpu);
+
+            assert_eq!(cpu.cycle, 1);
+        }
+    }
+
+    #[cfg(test)]
+    mod cmp_zp {
+        use crate::cpu::{instructions::cmp_zp, tests::MemoryMock, CPU};
+
+        #[test]
+        fn should_compare_accumulator_with_a_value_from_a_zero_page_address() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0x00, 0x04])));
+            cpu.accumulator = 0x02;
+            cpu.program_counter = 0x00;
+
+            cmp_zp(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_two_cycles() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0x00, 0x04])));
+            cpu.accumulator = 0x02;
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            cmp_zp(&mut cpu);
+
+            assert_eq!(cpu.cycle, 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod cmp_zpx {
+        use crate::cpu::{instructions::cmp_zpx, tests::MemoryMock, CPU};
+
+        // #[test]
+        // fn should_fetch_byte_from_an_address_stored_in_program_counter_pointed_place_summed_with_index_register_x_into_accumulator(
+        // ) {
+        //     let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x00, 0x00, 0x55])));
+        //     cpu.index_register_x = 0x02;
+        //     cpu.program_counter = 0x00;
+        //     assert_eq!(cpu.accumulator, 0x0);
+
+        //     cmp_zpx(&mut cpu);
+
+        //     assert_eq!(cpu.accumulator, 0x55);
+        // }
+
+        // #[test]
+        // fn should_overflow_over_byte_when_summing_address_from_memory_with_register_x() {
+        //     let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x88, 0x00])));
+        //     cpu.index_register_x = 0x02;
+        //     cpu.program_counter = 0x00;
+
+        //     cmp_zpx(&mut cpu);
+
+        //     assert_eq!(cpu.accumulator, 0x88);
+        // }
+
+        #[test]
+        fn should_compare_accumulator_with_a_value_from_a_zero_page_summed_with_index_register_x() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x00, 0x00, 0xFF])));
+            cpu.index_register_x = 0x02;
+            cpu.program_counter = 0x00;
+
+            cmp_zpx(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_three_cycles() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x01, 0x00, 0x00, 0x55])));
+            cpu.index_register_x = 0x02;
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            cmp_zpx(&mut cpu);
+
+            assert_eq!(cpu.cycle, 3);
+        }
+    }
+
+    #[cfg(test)]
+    mod cmp_a {
+        use crate::cpu::{instructions::cmp_a, tests::MemoryMock, CPU};
+
+        #[test]
+        fn should_compare_accumulator_with_a_value_from_an_address() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0x00, 0x00, 0xFF])));
+            cpu.program_counter = 0x00;
+
+            cmp_a(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_three_cycles() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[0x03, 0x00, 0x00, 0x05])));
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            cmp_a(&mut cpu);
+
+            assert_eq!(cpu.cycle, 3);
+        }
+    }
+
+    #[cfg(test)]
+    mod cmp_a_x {
+        use crate::{
+            consts::Byte,
+            cpu::{instructions::cmp_a_x, tests::MemoryMock, CPU},
+        };
+
+        const ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY: Byte = 0xFF;
+        const ADDRESS_LSB: Byte = 0x03;
+        const ADDRESS_MSB: Byte = 0x00;
+        const VALUE: Byte = 0xDB;
+
+        #[test]
+        fn should_compare_accumulator_with_a_value_stored_in_address_ofset_by_x_register() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ADDRESS_LSB,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                0xDD,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_x = 0x02;
+
+            cmp_a_x(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_three_cycles_when_adding_offset_crosses_over_page_flip() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ADDRESS_LSB,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                0xDD,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_x = 0x02;
+            cpu.cycle = 0;
+
+            cmp_a_x(&mut cpu);
+
+            assert_eq!(cpu.cycle, 3);
+        }
+
+        #[test]
+        fn should_take_four_cycles_when_adding_offset_crosses_over_page_flip() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                0xDD,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_x = 0x02;
+            cpu.cycle = 0;
+
+            cmp_a_x(&mut cpu);
+
+            assert_eq!(cpu.cycle, 4);
+        }
+    }
+
+    #[cfg(test)]
+    mod cmp_a_y {
+        use crate::{
+            consts::Byte,
+            cpu::{instructions::cmp_a_y, tests::MemoryMock, CPU},
+        };
+
+        const ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY: Byte = 0xFF;
+        const ADDRESS_LSB: Byte = 0x03;
+        const ADDRESS_MSB: Byte = 0x00;
+        const VALUE: Byte = 0xDB;
+
+        #[test]
+        fn should_compare_accumulator_with_a_value_stored_in_address_ofset_by_y_register() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ADDRESS_LSB,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                0xDD,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_y = 0x02;
+
+            cmp_a_y(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_three_cycles_when_adding_offset_crosses_over_page_flip() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ADDRESS_LSB,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                0xDD,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_y = 0x02;
+            cpu.cycle = 0;
+
+            cmp_a_y(&mut cpu);
+
+            assert_eq!(cpu.cycle, 3);
+        }
+
+        #[test]
+        fn should_take_four_cycles_when_adding_offset_crosses_over_page_flip() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                0xDD,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_y = 0x02;
+            cpu.cycle = 0;
+
+            cmp_a_y(&mut cpu);
+
+            assert_eq!(cpu.cycle, 4);
+        }
+    }
+
+    #[cfg(test)]
+    mod cmp_in_y {
+        use crate::{
+            consts::Byte,
+            cpu::{instructions::cmp_in_y, tests::MemoryMock, CPU},
+        };
+
+        const INDIRECT_ZERO_PAGE_ADDRESS_PLACE: Byte = 0x01;
+        const ADDRESS_LSB: Byte = 0x03;
+        const ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY: Byte = 0xFF;
+        const ADDRESS_MSB: Byte = 0x00;
+        const VALUE: Byte = 0xDB;
+
+        #[test]
+        fn should_compare_accumulator_with_a_value_from_an_indirect_adress_stored_in_memory_at_zero_page_and_offset_with_value_from_index_register_y(
+        ) {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
+                ADDRESS_LSB,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                VALUE,
+            ])));
+            cpu.index_register_y = 0x02;
+            cpu.program_counter = 0x00;
+
+            cmp_in_y(&mut cpu);
+
+            assert_eq!(cpu.processor_status.flags, 0b10000000);
+        }
+
+        #[test]
+        fn should_take_four_cycles_when_summing_indirect_address_with_index_y_does_not_cross_page_flip(
+        ) {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                INDIRECT_ZERO_PAGE_ADDRESS_PLACE,
+                ADDRESS_LSB,
+                ADDRESS_MSB,
+                0x45,
+                0xAF,
+                VALUE,
+            ])));
+            cpu.index_register_y = 0x02;
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            cmp_in_y(&mut cpu);
+
+            assert_eq!(cpu.cycle, 4);
+        }
+
+        #[test]
+        fn should_take_five_cycles_when_summing_indirect_address_with_index_y_crosses_page_flip() {
+            let mut memory: [Byte; 512] = [0x00; 512];
+            memory[0x0000] = INDIRECT_ZERO_PAGE_ADDRESS_PLACE;
+            memory[0x0001] = ADDRESS_LSB_ON_ZERO_PAGE_BOUNDARY;
+            memory[0x0002] = ADDRESS_MSB;
+            memory[0x0101] = VALUE;
+
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&memory)));
+            cpu.index_register_y = 0x02;
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            cmp_in_y(&mut cpu);
+
+            assert_eq!(cpu.cycle, 5);
+        }
+    }
+}

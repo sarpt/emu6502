@@ -309,7 +309,7 @@ impl CPU {
         self.processor_status
             .set_zero_flag(target_register == value);
         self.processor_status
-            .set_negative_flag(((target_register - value) & 0b10000000) > 1);
+            .set_negative_flag(((target_register.wrapping_sub(value)) & 0b10000000) > 1);
     }
 
     fn sum_with_x(&mut self, val: Byte) -> Byte {
