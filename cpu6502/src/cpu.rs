@@ -106,6 +106,10 @@ impl ProcessorStatus {
         self.set_flag(Flags::Negative, value_set);
     }
 
+    pub fn get_negative_flag(&self) -> bool {
+        return self.get_flag(Flags::Negative);
+    }
+
     fn set_flag(&mut self, flag: Flags, value_set: bool) {
         let shift: u8 = flag as u8;
         if value_set {

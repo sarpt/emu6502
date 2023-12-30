@@ -456,6 +456,105 @@ mod set_load_status {
 }
 
 #[cfg(test)]
+mod set_cmp_status {
+    use super::MemoryMock;
+    use crate::cpu::{Register, CPU};
+
+    #[test]
+    fn should_set_zero_flag_on_processor_status_when_register_is_the_same_as_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd3;
+
+        let value = 0xd3;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_zero_flag(), true);
+    }
+
+    #[test]
+    fn should_clear_zero_flag_on_processor_status_when_register_is_different_as_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000010;
+        uut.accumulator = 0xd5;
+
+        let value = 0xd3;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_zero_flag(), false);
+    }
+
+    #[test]
+    fn should_set_carry_flag_on_processor_status_when_register_is_the_same_as_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd3;
+
+        let value = 0xd3;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_carry_flag(), true);
+    }
+
+    #[test]
+    fn should_set_carry_flag_on_processor_status_when_register_is_bigger_than_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd5;
+
+        let value = 0xd3;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_carry_flag(), true);
+    }
+
+    #[test]
+    fn should_clear_zero_flag_on_processor_status_when_register_is_smaller_than_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000001;
+        uut.accumulator = 0x01;
+
+        let value = 0xd3;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_carry_flag(), false);
+    }
+
+    #[test]
+    fn should_set_negative_flag_on_processor_status_when_difference_with_provided_value_has_most_significant_byte_set(
+    ) {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd3;
+
+        let value = 0xd5;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_negative_flag(), true);
+    }
+
+    #[test]
+    fn should_clear_negative_flag_on_processor_status_when_difference_with_provided_value_has_most_significant_byte_clear(
+    ) {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000010;
+        uut.accumulator = 0xd5;
+
+        let value = 0xd3;
+        let register = Register::Accumulator;
+        uut.set_cmp_status(&register, value);
+
+        assert_eq!(uut.processor_status.get_negative_flag(), false);
+    }
+}
+
+#[cfg(test)]
 mod fetch_byte_with_offset {
     use super::MemoryMock;
     use crate::{consts::Byte, cpu::CPU};
