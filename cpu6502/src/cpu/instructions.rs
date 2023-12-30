@@ -1,6 +1,6 @@
-use super::{AddressingMode, Register, CPU};
+use super::{AddressingMode, Registers, CPU};
 
-fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
+fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Registers) {
     let address = match cpu.get_address(&addr_mode) {
         Some(address) => address,
         None => panic!("ld used with incorrect address mode"),
@@ -17,84 +17,80 @@ fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
         }
     };
 
-    match register {
-        Register::Accumulator => cpu.accumulator = value,
-        Register::IndexX => cpu.index_register_x = value,
-        Register::IndexY => cpu.index_register_y = value,
-    }
-    cpu.set_load_status(&register);
+    cpu.set_register(register, value);
+    cpu.set_load_status(register);
 }
 
 pub fn lda_im(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::Immediate, Register::Accumulator);
+    ld(cpu, AddressingMode::Immediate, Registers::Accumulator);
 }
 
 pub fn lda_zp(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::ZeroPage, Register::Accumulator);
+    ld(cpu, AddressingMode::ZeroPage, Registers::Accumulator);
 }
 
 pub fn lda_zpx(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::ZeroPageX, Register::Accumulator);
+    ld(cpu, AddressingMode::ZeroPageX, Registers::Accumulator);
 }
 
 pub fn lda_a(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::Absolute, Register::Accumulator);
+    ld(cpu, AddressingMode::Absolute, Registers::Accumulator);
 }
 
 pub fn lda_a_x(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::AbsoluteX, Register::Accumulator);
+    ld(cpu, AddressingMode::AbsoluteX, Registers::Accumulator);
 }
 
 pub fn lda_a_y(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::AbsoluteY, Register::Accumulator);
+    ld(cpu, AddressingMode::AbsoluteY, Registers::Accumulator);
 }
 
 pub fn lda_in_x(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::IndexIndirectX, Register::Accumulator);
+    ld(cpu, AddressingMode::IndexIndirectX, Registers::Accumulator);
 }
 
 pub fn lda_in_y(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::IndirectIndexY, Register::Accumulator);
+    ld(cpu, AddressingMode::IndirectIndexY, Registers::Accumulator);
 }
 
 pub fn ldy_im(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::Immediate, Register::IndexY);
+    ld(cpu, AddressingMode::Immediate, Registers::IndexY);
 }
 
 pub fn ldy_zp(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::ZeroPage, Register::IndexY);
+    ld(cpu, AddressingMode::ZeroPage, Registers::IndexY);
 }
 
 pub fn ldy_zpx(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::ZeroPageX, Register::IndexY);
+    ld(cpu, AddressingMode::ZeroPageX, Registers::IndexY);
 }
 
 pub fn ldy_a(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::Absolute, Register::IndexY);
+    ld(cpu, AddressingMode::Absolute, Registers::IndexY);
 }
 
 pub fn ldy_a_x(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::AbsoluteX, Register::IndexY);
+    ld(cpu, AddressingMode::AbsoluteX, Registers::IndexY);
 }
 
 pub fn ldx_im(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::Immediate, Register::IndexX);
+    ld(cpu, AddressingMode::Immediate, Registers::IndexX);
 }
 
 pub fn ldx_zp(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::ZeroPage, Register::IndexX);
+    ld(cpu, AddressingMode::ZeroPage, Registers::IndexX);
 }
 
 pub fn ldx_zpy(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::ZeroPageY, Register::IndexX);
+    ld(cpu, AddressingMode::ZeroPageY, Registers::IndexX);
 }
 
 pub fn ldx_a(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::Absolute, Register::IndexX);
+    ld(cpu, AddressingMode::Absolute, Registers::IndexX);
 }
 
 pub fn ldx_a_y(cpu: &mut CPU) {
-    ld(cpu, AddressingMode::AbsoluteY, Register::IndexX);
+    ld(cpu, AddressingMode::AbsoluteY, Registers::IndexX);
 }
 
 pub fn jsr_a(cpu: &mut CPU) {
@@ -166,7 +162,7 @@ pub fn beq(cpu: &mut CPU) {
     });
 }
 
-fn compare(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
+fn compare(cpu: &mut CPU, addr_mode: AddressingMode, register: Registers) {
     let address = match cpu.get_address(&addr_mode) {
         Some(address) => address,
         None => panic!("compare used with incorrect address mode"),
@@ -183,63 +179,63 @@ fn compare(cpu: &mut CPU, addr_mode: AddressingMode, register: Register) {
         }
     };
 
-    cpu.set_cmp_status(&register, value);
+    cpu.set_cmp_status(register, value);
 }
 
 pub fn cmp_im(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::Immediate, Register::Accumulator);
+    compare(cpu, AddressingMode::Immediate, Registers::Accumulator);
 }
 
 pub fn cmp_zp(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::ZeroPage, Register::Accumulator);
+    compare(cpu, AddressingMode::ZeroPage, Registers::Accumulator);
 }
 
 pub fn cmp_zpx(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::ZeroPageX, Register::Accumulator);
+    compare(cpu, AddressingMode::ZeroPageX, Registers::Accumulator);
 }
 
 pub fn cmp_a(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::Absolute, Register::Accumulator);
+    compare(cpu, AddressingMode::Absolute, Registers::Accumulator);
 }
 
 pub fn cmp_a_x(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::AbsoluteX, Register::Accumulator);
+    compare(cpu, AddressingMode::AbsoluteX, Registers::Accumulator);
 }
 
 pub fn cmp_a_y(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::AbsoluteY, Register::Accumulator);
+    compare(cpu, AddressingMode::AbsoluteY, Registers::Accumulator);
 }
 
 pub fn cmp_in_x(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::IndexIndirectX, Register::Accumulator);
+    compare(cpu, AddressingMode::IndexIndirectX, Registers::Accumulator);
 }
 
 pub fn cmp_in_y(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::IndirectIndexY, Register::Accumulator);
+    compare(cpu, AddressingMode::IndirectIndexY, Registers::Accumulator);
 }
 
 pub fn cpx_im(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::Immediate, Register::IndexX);
+    compare(cpu, AddressingMode::Immediate, Registers::IndexX);
 }
 
 pub fn cpx_zp(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::ZeroPage, Register::IndexX);
+    compare(cpu, AddressingMode::ZeroPage, Registers::IndexX);
 }
 
 pub fn cpx_a(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::Absolute, Register::IndexX);
+    compare(cpu, AddressingMode::Absolute, Registers::IndexX);
 }
 
 pub fn cpy_im(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::Immediate, Register::IndexY);
+    compare(cpu, AddressingMode::Immediate, Registers::IndexY);
 }
 
 pub fn cpy_zp(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::ZeroPage, Register::IndexY);
+    compare(cpu, AddressingMode::ZeroPage, Registers::IndexY);
 }
 
 pub fn cpy_a(cpu: &mut CPU) {
-    compare(cpu, AddressingMode::Absolute, Register::IndexY);
+    compare(cpu, AddressingMode::Absolute, Registers::IndexY);
 }
 
 #[cfg(test)]

@@ -75,7 +75,8 @@ enum AddressingMode {
     IndirectIndexY,
 }
 
-enum Register {
+#[derive(Copy, Clone)]
+enum Registers {
     Accumulator,
     IndexX,
     IndexY,
@@ -217,6 +218,27 @@ impl CPU {
         self.cycle += 1;
     }
 
+    fn increment_register(&mut self, register: Registers) {
+        self.set_register(register, self.get_register(register) + 1);
+        self.cycle += 1;
+    }
+
+    fn set_register(&mut self, register: Registers, value: Byte) {
+        match register {
+            Registers::Accumulator => self.accumulator = value,
+            Registers::IndexX => self.index_register_x = value,
+            Registers::IndexY => self.index_register_y = value,
+        };
+    }
+
+    fn get_register(&self, register: Registers) -> u8 {
+        return match register {
+            Registers::Accumulator => self.accumulator,
+            Registers::IndexX => self.index_register_x,
+            Registers::IndexY => self.index_register_y,
+        };
+    }
+
     fn increment_stack_pointer(&mut self) {
         self.stack_pointer = self.stack_pointer.wrapping_add(1);
     }
@@ -289,24 +311,16 @@ impl CPU {
         return self.sum_with_x(zero_page_addr).into();
     }
 
-    fn set_load_status(&mut self, register: &Register) {
-        let target_register = match register {
-            Register::Accumulator => self.accumulator,
-            Register::IndexX => self.index_register_x,
-            Register::IndexY => self.index_register_y,
-        };
+    fn set_load_status(&mut self, register: Registers) {
+        let target_register = self.get_register(register);
 
         self.processor_status.set_zero_flag(target_register == 0);
         self.processor_status
             .set_negative_flag((target_register & 0b10000000) > 1);
     }
 
-    fn set_cmp_status(&mut self, register: &Register, value: Byte) {
-        let target_register = match register {
-            Register::Accumulator => self.accumulator,
-            Register::IndexX => self.index_register_x,
-            Register::IndexY => self.index_register_y,
-        };
+    fn set_cmp_status(&mut self, register: Registers, value: Byte) {
+        let target_register = self.get_register(register);
 
         self.processor_status
             .set_carry_flag(target_register >= value);

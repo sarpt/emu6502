@@ -235,6 +235,81 @@ mod fetch_instruction {
 }
 
 #[cfg(test)]
+mod get_register {
+    use super::MemoryMock;
+    use crate::cpu::{Registers, CPU};
+
+    #[test]
+    fn should_return_accumulator() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.accumulator = 0xdf;
+
+        let result = uut.get_register(Registers::Accumulator);
+
+        assert_eq!(result, 0xdf);
+    }
+
+    #[test]
+    fn should_return_index_register_x() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_x = 0xdf;
+
+        let result = uut.get_register(Registers::IndexX);
+
+        assert_eq!(result, 0xdf);
+    }
+
+    #[test]
+    fn should_return_index_register_y() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_y = 0xdf;
+
+        let result = uut.get_register(Registers::IndexY);
+
+        assert_eq!(result, 0xdf);
+    }
+}
+
+#[cfg(test)]
+mod set_register {
+    use super::MemoryMock;
+    use crate::cpu::{Registers, CPU};
+
+    #[test]
+    fn should_set_accumulator() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.accumulator = 0x00;
+
+        let value = 0xf5;
+        uut.set_register(Registers::Accumulator, value);
+
+        assert_eq!(uut.accumulator, 0xf5);
+    }
+
+    #[test]
+    fn should_set_index_register_x() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_x = 0x00;
+
+        let value = 0xf5;
+        uut.set_register(Registers::IndexX, value);
+
+        assert_eq!(uut.index_register_x, 0xf5);
+    }
+
+    #[test]
+    fn should_set_index_register_y() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_y = 0x00;
+
+        let value = 0xf5;
+        uut.set_register(Registers::IndexY, value);
+
+        assert_eq!(uut.index_register_y, 0xf5);
+    }
+}
+
+#[cfg(test)]
 mod push_byte_to_stack {
     use super::MemoryMock;
     use crate::cpu::CPU;
@@ -404,7 +479,7 @@ mod sum_with_x {
 #[cfg(test)]
 mod set_load_status {
     use super::MemoryMock;
-    use crate::cpu::{Register, CPU};
+    use crate::cpu::{Registers, CPU};
 
     #[test]
     fn should_set_zero_flag_on_processor_status_when_register_is_zero() {
@@ -412,8 +487,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x00;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b00000010);
     }
@@ -424,8 +499,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0xFF;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b11111101);
     }
@@ -436,8 +511,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x80;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b10000000);
     }
@@ -448,8 +523,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0x00;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b01111111);
     }
@@ -458,7 +533,7 @@ mod set_load_status {
 #[cfg(test)]
 mod set_cmp_status {
     use super::MemoryMock;
-    use crate::cpu::{Register, CPU};
+    use crate::cpu::{Registers, CPU};
 
     #[test]
     fn should_set_zero_flag_on_processor_status_when_register_is_the_same_as_provided_value() {
@@ -467,8 +542,8 @@ mod set_cmp_status {
         uut.accumulator = 0xd3;
 
         let value = 0xd3;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_zero_flag(), true);
     }
@@ -480,8 +555,8 @@ mod set_cmp_status {
         uut.accumulator = 0xd5;
 
         let value = 0xd3;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_zero_flag(), false);
     }
@@ -493,8 +568,8 @@ mod set_cmp_status {
         uut.accumulator = 0xd3;
 
         let value = 0xd3;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_carry_flag(), true);
     }
@@ -506,8 +581,8 @@ mod set_cmp_status {
         uut.accumulator = 0xd5;
 
         let value = 0xd3;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_carry_flag(), true);
     }
@@ -519,8 +594,8 @@ mod set_cmp_status {
         uut.accumulator = 0x01;
 
         let value = 0xd3;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_carry_flag(), false);
     }
@@ -533,8 +608,8 @@ mod set_cmp_status {
         uut.accumulator = 0xd3;
 
         let value = 0xd5;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_negative_flag(), true);
     }
@@ -547,8 +622,8 @@ mod set_cmp_status {
         uut.accumulator = 0xd5;
 
         let value = 0xd3;
-        let register = Register::Accumulator;
-        uut.set_cmp_status(&register, value);
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
 
         assert_eq!(uut.processor_status.get_negative_flag(), false);
     }
