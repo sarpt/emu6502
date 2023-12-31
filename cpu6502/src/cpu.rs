@@ -48,6 +48,12 @@ const INSTRUCTION_CPX_A: Byte = 0xEC;
 const INSTRUCTION_CPY_IM: Byte = 0xC0;
 const INSTRUCTION_CPY_ZP: Byte = 0xC4;
 const INSTRUCTION_CPY_A: Byte = 0xCC;
+const INSTRUCTION_INC_ZP: Byte = 0xE6;
+const INSTRUCTION_INC_ZPX: Byte = 0xF6;
+const INSTRUCTION_INC_A_X: Byte = 0xEE;
+const INSTRUCTION_INC_A_Y: Byte = 0xFE;
+const INSTRUCTION_INX_IM: Byte = 0xE8;
+const INSTRUCTION_INY_IM: Byte = 0xC8;
 
 enum Flags {
     Carry = 0,
@@ -60,6 +66,7 @@ struct ProcessorStatus {
     flags: Byte,
 }
 
+#[derive(Copy, Clone)]
 enum AddressingMode {
     Immediate,
     Indirect,
@@ -77,6 +84,8 @@ enum AddressingMode {
 
 #[derive(Copy, Clone)]
 enum Registers {
+    StackPointer,
+    ProcessorStatus,
     Accumulator,
     IndexX,
     IndexY,
@@ -132,7 +141,6 @@ pub struct CPU {
     cycle: u64,
     program_counter: Word,
     stack_pointer: Byte,
-    // registers
     accumulator: Byte,
     index_register_x: Byte,
     index_register_y: Byte,
@@ -219,7 +227,12 @@ impl CPU {
     }
 
     fn increment_register(&mut self, register: Registers) {
-        self.set_register(register, self.get_register(register) + 1);
+        self.set_register(register, self.get_register(register).wrapping_add(1));
+        self.cycle += 1;
+    }
+
+    fn decrement_register(&mut self, register: Registers) {
+        self.set_register(register, self.get_register(register).wrapping_sub(1));
         self.cycle += 1;
     }
 
@@ -228,6 +241,8 @@ impl CPU {
             Registers::Accumulator => self.accumulator = value,
             Registers::IndexX => self.index_register_x = value,
             Registers::IndexY => self.index_register_y = value,
+            Registers::ProcessorStatus => self.processor_status.flags = value,
+            Registers::StackPointer => self.stack_pointer = value,
         };
     }
 
@@ -236,15 +251,9 @@ impl CPU {
             Registers::Accumulator => self.accumulator,
             Registers::IndexX => self.index_register_x,
             Registers::IndexY => self.index_register_y,
+            Registers::ProcessorStatus => self.processor_status.flags,
+            Registers::StackPointer => self.stack_pointer,
         };
-    }
-
-    fn increment_stack_pointer(&mut self) {
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
-    }
-
-    fn decrement_stack_pointer(&mut self) {
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
 
     fn fetch_byte_with_offset(&mut self, addr: Word, offset: Byte) -> Byte {
@@ -349,8 +358,7 @@ impl CPU {
     fn push_byte_to_stack(&mut self, val: Byte) {
         let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
         self.memory[stack_addr] = val;
-        self.decrement_stack_pointer();
-        self.cycle += 1;
+        self.decrement_register(Registers::StackPointer);
     }
 
     fn push_word_to_stack(&mut self, val: Word) {
@@ -360,9 +368,8 @@ impl CPU {
     }
 
     fn pop_byte_from_stack(&mut self) -> Byte {
-        self.increment_stack_pointer();
+        self.increment_register(Registers::StackPointer);
         let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
-        self.cycle += 1;
         let val = self.memory[stack_addr];
 
         return val;
@@ -409,7 +416,7 @@ impl CPU {
         self.cycle += 1;
     }
 
-    fn get_address(&mut self, addr_mode: &AddressingMode) -> Option<Word> {
+    fn get_address(&mut self, addr_mode: AddressingMode) -> Option<Word> {
         match addr_mode {
             AddressingMode::ZeroPage => {
                 return Some(self.fetch_zero_page_address());

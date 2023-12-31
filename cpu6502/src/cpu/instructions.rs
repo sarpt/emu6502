@@ -1,7 +1,7 @@
 use super::{AddressingMode, Registers, CPU};
 
 fn ld(cpu: &mut CPU, addr_mode: AddressingMode, register: Registers) {
-    let address = match cpu.get_address(&addr_mode) {
+    let address = match cpu.get_address(addr_mode) {
         Some(address) => address,
         None => panic!("ld used with incorrect address mode"),
     };
@@ -114,7 +114,7 @@ pub fn rts(cpu: &mut CPU) {
 }
 
 fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
-    match cpu.get_address(&addr_mode) {
+    match cpu.get_address(addr_mode) {
         Some(address) => cpu.program_counter = address,
         None => panic!("jmp used with incorrect addressing mode"),
     }
@@ -163,7 +163,7 @@ pub fn beq(cpu: &mut CPU) {
 }
 
 fn compare(cpu: &mut CPU, addr_mode: AddressingMode, register: Registers) {
-    let address = match cpu.get_address(&addr_mode) {
+    let address = match cpu.get_address(addr_mode) {
         Some(address) => address,
         None => panic!("compare used with incorrect address mode"),
     };
@@ -236,6 +236,46 @@ pub fn cpy_zp(cpu: &mut CPU) {
 
 pub fn cpy_a(cpu: &mut CPU) {
     compare(cpu, AddressingMode::Absolute, Registers::IndexY);
+}
+
+fn increment(cpu: &mut CPU, addr_mode: AddressingMode, register: Registers) {
+    match register {
+        Registers::IndexX | Registers::IndexY => {
+            cpu.increment_register(register);
+            cpu.cycle += 1;
+        }
+        Registers::Accumulator => {
+            let address = match cpu.get_address(addr_mode) {
+                Some(address) => address,
+                None => panic!("accumulator increment used with incorrect address mode"),
+            };
+        }
+        _ => panic!("increment used with incorrect register"),
+    }
+}
+
+pub fn inc_zp(cpu: &mut CPU) {
+    increment(cpu, AddressingMode::ZeroPage, Registers::Accumulator);
+}
+
+pub fn inc_zpx(cpu: &mut CPU) {
+    increment(cpu, AddressingMode::ZeroPageX, Registers::Accumulator);
+}
+
+pub fn inc_a_x(cpu: &mut CPU) {
+    increment(cpu, AddressingMode::AbsoluteX, Registers::Accumulator);
+}
+
+pub fn inc_a_y(cpu: &mut CPU) {
+    increment(cpu, AddressingMode::AbsoluteY, Registers::Accumulator);
+}
+
+pub fn inx(cpu: &mut CPU) {
+    increment(cpu, AddressingMode::Implicit, Registers::IndexY);
+}
+
+pub fn iny(cpu: &mut CPU) {
+    increment(cpu, AddressingMode::Implicit, Registers::IndexY);
 }
 
 #[cfg(test)]
