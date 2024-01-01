@@ -50,8 +50,8 @@ const INSTRUCTION_CPY_ZP: Byte = 0xC4;
 const INSTRUCTION_CPY_A: Byte = 0xCC;
 const INSTRUCTION_INC_ZP: Byte = 0xE6;
 const INSTRUCTION_INC_ZPX: Byte = 0xF6;
-const INSTRUCTION_INC_A_X: Byte = 0xEE;
-const INSTRUCTION_INC_A_Y: Byte = 0xFE;
+const INSTRUCTION_INC_A: Byte = 0xEE;
+const INSTRUCTION_INC_A_X: Byte = 0xFE;
 const INSTRUCTION_INX_IM: Byte = 0xE8;
 const INSTRUCTION_INY_IM: Byte = 0xC8;
 
@@ -202,8 +202,8 @@ impl CPU {
             (INSTRUCTION_CPY_A, cpy_a as OpcodeHandler),
             (INSTRUCTION_INC_ZP, inc_zp as OpcodeHandler),
             (INSTRUCTION_INC_ZPX, inc_zpx as OpcodeHandler),
+            (INSTRUCTION_INC_A, inc_a as OpcodeHandler),
             (INSTRUCTION_INC_A_X, inc_a_x as OpcodeHandler),
-            (INSTRUCTION_INC_A_Y, inc_a_y as OpcodeHandler),
             (INSTRUCTION_INX_IM, inx_im as OpcodeHandler),
             (INSTRUCTION_INY_IM, iny_im as OpcodeHandler),
         ]);

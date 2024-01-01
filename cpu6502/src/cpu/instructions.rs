@@ -233,12 +233,12 @@ pub fn inc_zpx(cpu: &mut CPU) {
     cpu.modify_memory(AddressingMode::ZeroPageX, MemoryModifications::Increment);
 }
 
-pub fn inc_a_x(cpu: &mut CPU) {
-    cpu.modify_memory(AddressingMode::AbsoluteX, MemoryModifications::Increment);
+pub fn inc_a(cpu: &mut CPU) {
+    cpu.modify_memory(AddressingMode::Absolute, MemoryModifications::Increment);
 }
 
-pub fn inc_a_y(cpu: &mut CPU) {
-    cpu.modify_memory(AddressingMode::AbsoluteY, MemoryModifications::Increment);
+pub fn inc_a_x(cpu: &mut CPU) {
+    cpu.modify_memory(AddressingMode::AbsoluteX, MemoryModifications::Increment);
 }
 
 pub fn inx_im(cpu: &mut CPU) {
