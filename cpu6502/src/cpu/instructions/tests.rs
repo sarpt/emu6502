@@ -2079,3 +2079,140 @@ mod cpx {
         }
     }
 }
+
+#[cfg(test)]
+mod increment {
+    #[cfg(test)]
+    mod inx_im {
+        use crate::cpu::{instructions::inx_im, tests::MemoryMock, CPU};
+
+        #[test]
+        fn should_increment_x_register() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::default()));
+            cpu.index_register_x = 0x02;
+
+            inx_im(&mut cpu);
+
+            assert_eq!(cpu.index_register_x, 0x03);
+        }
+
+        #[test]
+        fn should_take_one_cycle() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::default()));
+            cpu.index_register_x = 0x02;
+            cpu.cycle = 0;
+
+            inx_im(&mut cpu);
+
+            assert_eq!(cpu.cycle, 1);
+        }
+    }
+
+    #[cfg(test)]
+    mod iny_im {
+        use crate::cpu::{instructions::iny_im, tests::MemoryMock, CPU};
+
+        #[test]
+        fn should_increment_y_register() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::default()));
+            cpu.index_register_y = 0x02;
+
+            iny_im(&mut cpu);
+
+            assert_eq!(cpu.index_register_y, 0x03);
+        }
+
+        #[test]
+        fn should_take_one_cycle() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::default()));
+            cpu.index_register_y = 0x02;
+            cpu.cycle = 0;
+
+            iny_im(&mut cpu);
+
+            assert_eq!(cpu.cycle, 1);
+        }
+    }
+
+    #[cfg(test)]
+    mod inc_zp {
+        use crate::cpu::{instructions::inc_zp, tests::MemoryMock, Byte, Word, CPU};
+
+        const VALUE: Byte = 0x02;
+        const ZERO_PAGE_ADDR: Byte = 0x03;
+
+        #[test]
+        fn should_increment_value_stored_in_memory_at_zero_page_address() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ZERO_PAGE_ADDR,
+                0xFF,
+                0x00,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+
+            inc_zp(&mut cpu);
+
+            assert_eq!(cpu.memory[ZERO_PAGE_ADDR as Word], 0x03);
+        }
+
+        #[test]
+        fn should_take_four_cycles() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ZERO_PAGE_ADDR,
+                0xFF,
+                0x00,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.cycle = 0;
+
+            inc_zp(&mut cpu);
+
+            assert_eq!(cpu.cycle, 4);
+        }
+    }
+
+    #[cfg(test)]
+    mod inc_zpx {
+        use crate::cpu::{instructions::inc_zpx, tests::MemoryMock, Byte, Word, CPU};
+
+        const VALUE: Byte = 0x09;
+        const ZERO_PAGE_ADDR: Byte = 0x01;
+        const ZERO_PAGE_ADDR_SUM_X: Word = 0x03;
+
+        #[test]
+        fn should_increment_value_stored_in_memory_at_zero_page_address_summed_with_index_register_x(
+        ) {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ZERO_PAGE_ADDR,
+                0xFF,
+                0x00,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_x = 0x02;
+
+            inc_zpx(&mut cpu);
+
+            assert_eq!(cpu.memory[ZERO_PAGE_ADDR_SUM_X as Word], 0x0A);
+        }
+
+        #[test]
+        fn should_take_five_cycles() {
+            let mut cpu = CPU::new(Box::new(MemoryMock::new(&[
+                ZERO_PAGE_ADDR,
+                0xFF,
+                0x00,
+                VALUE,
+            ])));
+            cpu.program_counter = 0x00;
+            cpu.index_register_x = 0x02;
+            cpu.cycle = 0;
+
+            inc_zpx(&mut cpu);
+
+            assert_eq!(cpu.cycle, 5);
+        }
+    }
+}

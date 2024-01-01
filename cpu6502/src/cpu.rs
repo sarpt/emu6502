@@ -91,6 +91,14 @@ enum Registers {
     IndexY,
 }
 
+#[derive(Copy, Clone)]
+enum MemoryModifications {
+    Increment,
+    Decrement,
+    RotateLeft,
+    RotateRight,
+}
+
 impl ProcessorStatus {
     pub fn set_decimal_mode_flag(&mut self, value_set: bool) {
         self.set_flag(Flags::DecimalMode, value_set);
@@ -192,6 +200,12 @@ impl CPU {
             (INSTRUCTION_CPY_IM, cpy_im as OpcodeHandler),
             (INSTRUCTION_CPY_ZP, cpy_zp as OpcodeHandler),
             (INSTRUCTION_CPY_A, cpy_a as OpcodeHandler),
+            (INSTRUCTION_INC_ZP, inc_zp as OpcodeHandler),
+            (INSTRUCTION_INC_ZPX, inc_zpx as OpcodeHandler),
+            (INSTRUCTION_INC_A_X, inc_a_x as OpcodeHandler),
+            (INSTRUCTION_INC_A_Y, inc_a_y as OpcodeHandler),
+            (INSTRUCTION_INX_IM, inx_im as OpcodeHandler),
+            (INSTRUCTION_INY_IM, iny_im as OpcodeHandler),
         ]);
 
         return CPU {
@@ -219,6 +233,10 @@ impl CPU {
 
     fn access_memory(&mut self, addr: Word) -> Byte {
         return self.memory[addr];
+    }
+
+    fn put_into_memory(&mut self, addr: Word, value: Byte) {
+        self.memory[addr] = value;
     }
 
     fn increment_program_counter(&mut self) {
@@ -256,12 +274,20 @@ impl CPU {
         };
     }
 
-    fn fetch_byte_with_offset(&mut self, addr: Word, offset: Byte) -> Byte {
+    fn fetch_byte_from_offset_addr(
+        &mut self,
+        addr: Word,
+        offset: Byte,
+        force_two_cycles: bool,
+    ) -> Byte {
         let [lo, mut hi] = addr.to_le_bytes();
         let (new_lo, carry) = lo.overflowing_add(offset);
         let mut address = Word::from_le_bytes([new_lo, hi]);
         self.cycle += 1;
         if !carry {
+            if force_two_cycles {
+                self.cycle += 1
+            };
             return self.access_memory(address);
         };
 
@@ -414,6 +440,79 @@ impl CPU {
         self.program_counter =
             Word::from_le_bytes([offset_program_counter_lo, offset_program_counter_hi]);
         self.cycle += 1;
+    }
+
+    fn read_memory(&mut self, addr_mode: AddressingMode) -> Option<Byte> {
+        let address = match self.get_address(addr_mode) {
+            Some(address) => address,
+            None => return None,
+        };
+
+        let force_two_cycles = false;
+        let value = match addr_mode {
+            AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_y, force_two_cycles)
+            }
+            AddressingMode::AbsoluteX => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_x, force_two_cycles)
+            }
+            _ => {
+                self.cycle += 1;
+                self.access_memory(address)
+            }
+        };
+
+        return Some(value);
+    }
+
+    fn modify_memory(
+        &mut self,
+        addr_mode: AddressingMode,
+        modification: MemoryModifications,
+    ) -> Option<()> {
+        let address = match self.get_address(addr_mode) {
+            Some(address) => address,
+            None => return None,
+        };
+
+        let force_two_cycles = true;
+        let value = match addr_mode {
+            AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_y, force_two_cycles)
+            }
+            AddressingMode::AbsoluteX => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_x, force_two_cycles)
+            }
+            _ => {
+                self.cycle += 1;
+                self.access_memory(address)
+            }
+        };
+
+        let modified_value = match modification {
+            MemoryModifications::Increment => value.wrapping_add(1),
+            MemoryModifications::Decrement => value.wrapping_sub(1),
+            MemoryModifications::RotateLeft => panic!("rotate left not implemented yet"),
+            MemoryModifications::RotateRight => panic!("rotate right not implemented yet"),
+        };
+        self.cycle += 1;
+
+        self.put_into_memory(address, modified_value);
+        self.cycle += 1;
+
+        return Some(());
+    }
+
+    fn write_memory(&mut self, addr_mode: AddressingMode, value: Byte) -> Option<()> {
+        let address = match self.get_address(addr_mode) {
+            Some(address) => address,
+            None => return None,
+        };
+
+        self.put_into_memory(address, value);
+        self.cycle += 1;
+
+        return Some(());
     }
 
     fn get_address(&mut self, addr_mode: AddressingMode) -> Option<Word> {
