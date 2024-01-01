@@ -34,6 +34,26 @@ const INSTRUCTION_BEQ: Byte = 0xF0;
 const INSTRUCTION_BCC: Byte = 0x90;
 const INSTRUCTION_BCS: Byte = 0xB0;
 const INSTRUCTION_BNE: Byte = 0xD0;
+const INSTRUCTION_CMP_IM: Byte = 0xC9;
+const INSTRUCTION_CMP_ZP: Byte = 0xC5;
+const INSTRUCTION_CMP_ZPX: Byte = 0xD5;
+const INSTRUCTION_CMP_A: Byte = 0xCD;
+const INSTRUCTION_CMP_A_X: Byte = 0xDD;
+const INSTRUCTION_CMP_A_Y: Byte = 0xD9;
+const INSTRUCTION_CMP_IN_X: Byte = 0xC1;
+const INSTRUCTION_CMP_IN_Y: Byte = 0xD1;
+const INSTRUCTION_CPX_IM: Byte = 0xE0;
+const INSTRUCTION_CPX_ZP: Byte = 0xE4;
+const INSTRUCTION_CPX_A: Byte = 0xEC;
+const INSTRUCTION_CPY_IM: Byte = 0xC0;
+const INSTRUCTION_CPY_ZP: Byte = 0xC4;
+const INSTRUCTION_CPY_A: Byte = 0xCC;
+const INSTRUCTION_INC_ZP: Byte = 0xE6;
+const INSTRUCTION_INC_ZPX: Byte = 0xF6;
+const INSTRUCTION_INC_A: Byte = 0xEE;
+const INSTRUCTION_INC_A_X: Byte = 0xFE;
+const INSTRUCTION_INX_IM: Byte = 0xE8;
+const INSTRUCTION_INY_IM: Byte = 0xC8;
 
 enum Flags {
     Carry = 0,
@@ -46,6 +66,7 @@ struct ProcessorStatus {
     flags: Byte,
 }
 
+#[derive(Copy, Clone)]
 enum AddressingMode {
     Immediate,
     Indirect,
@@ -61,10 +82,21 @@ enum AddressingMode {
     IndirectIndexY,
 }
 
-enum Register {
+#[derive(Copy, Clone)]
+enum Registers {
+    StackPointer,
+    ProcessorStatus,
     Accumulator,
     IndexX,
     IndexY,
+}
+
+#[derive(Copy, Clone)]
+enum MemoryModifications {
+    Increment,
+    Decrement,
+    RotateLeft,
+    RotateRight,
 }
 
 impl ProcessorStatus {
@@ -92,6 +124,10 @@ impl ProcessorStatus {
         self.set_flag(Flags::Negative, value_set);
     }
 
+    pub fn get_negative_flag(&self) -> bool {
+        return self.get_flag(Flags::Negative);
+    }
+
     fn set_flag(&mut self, flag: Flags, value_set: bool) {
         let shift: u8 = flag as u8;
         if value_set {
@@ -113,7 +149,6 @@ pub struct CPU {
     cycle: u64,
     program_counter: Word,
     stack_pointer: Byte,
-    // registers
     accumulator: Byte,
     index_register_x: Byte,
     index_register_y: Byte,
@@ -151,6 +186,26 @@ impl CPU {
             (INSTRUCTION_BCS, bcs as OpcodeHandler),
             (INSTRUCTION_BEQ, beq as OpcodeHandler),
             (INSTRUCTION_BNE, bne as OpcodeHandler),
+            (INSTRUCTION_CMP_IM, cmp_im as OpcodeHandler),
+            (INSTRUCTION_CMP_ZP, cmp_zp as OpcodeHandler),
+            (INSTRUCTION_CMP_ZPX, cmp_zpx as OpcodeHandler),
+            (INSTRUCTION_CMP_A, cmp_a as OpcodeHandler),
+            (INSTRUCTION_CMP_A_X, cmp_a_x as OpcodeHandler),
+            (INSTRUCTION_CMP_A_Y, cmp_a_y as OpcodeHandler),
+            (INSTRUCTION_CMP_IN_X, cmp_in_x as OpcodeHandler),
+            (INSTRUCTION_CMP_IN_Y, cmp_in_y as OpcodeHandler),
+            (INSTRUCTION_CPX_IM, cpx_im as OpcodeHandler),
+            (INSTRUCTION_CPX_ZP, cpx_zp as OpcodeHandler),
+            (INSTRUCTION_CPX_A, cpx_a as OpcodeHandler),
+            (INSTRUCTION_CPY_IM, cpy_im as OpcodeHandler),
+            (INSTRUCTION_CPY_ZP, cpy_zp as OpcodeHandler),
+            (INSTRUCTION_CPY_A, cpy_a as OpcodeHandler),
+            (INSTRUCTION_INC_ZP, inc_zp as OpcodeHandler),
+            (INSTRUCTION_INC_ZPX, inc_zpx as OpcodeHandler),
+            (INSTRUCTION_INC_A, inc_a as OpcodeHandler),
+            (INSTRUCTION_INC_A_X, inc_a_x as OpcodeHandler),
+            (INSTRUCTION_INX_IM, inx_im as OpcodeHandler),
+            (INSTRUCTION_INY_IM, iny_im as OpcodeHandler),
         ]);
 
         return CPU {
@@ -180,25 +235,59 @@ impl CPU {
         return self.memory[addr];
     }
 
+    fn put_into_memory(&mut self, addr: Word, value: Byte) {
+        self.memory[addr] = value;
+    }
+
     fn increment_program_counter(&mut self) {
         self.program_counter = self.program_counter.wrapping_add(1);
         self.cycle += 1;
     }
 
-    fn increment_stack_pointer(&mut self) {
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+    fn increment_register(&mut self, register: Registers) {
+        self.set_register(register, self.get_register(register).wrapping_add(1));
+        self.cycle += 1;
     }
 
-    fn decrement_stack_pointer(&mut self) {
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+    fn decrement_register(&mut self, register: Registers) {
+        self.set_register(register, self.get_register(register).wrapping_sub(1));
+        self.cycle += 1;
     }
 
-    fn fetch_byte_with_offset(&mut self, addr: Word, offset: Byte) -> Byte {
+    fn set_register(&mut self, register: Registers, value: Byte) {
+        match register {
+            Registers::Accumulator => self.accumulator = value,
+            Registers::IndexX => self.index_register_x = value,
+            Registers::IndexY => self.index_register_y = value,
+            Registers::ProcessorStatus => self.processor_status.flags = value,
+            Registers::StackPointer => self.stack_pointer = value,
+        };
+    }
+
+    fn get_register(&self, register: Registers) -> u8 {
+        return match register {
+            Registers::Accumulator => self.accumulator,
+            Registers::IndexX => self.index_register_x,
+            Registers::IndexY => self.index_register_y,
+            Registers::ProcessorStatus => self.processor_status.flags,
+            Registers::StackPointer => self.stack_pointer,
+        };
+    }
+
+    fn fetch_byte_from_offset_addr(
+        &mut self,
+        addr: Word,
+        offset: Byte,
+        force_two_cycles: bool,
+    ) -> Byte {
         let [lo, mut hi] = addr.to_le_bytes();
         let (new_lo, carry) = lo.overflowing_add(offset);
         let mut address = Word::from_le_bytes([new_lo, hi]);
         self.cycle += 1;
         if !carry {
+            if force_two_cycles {
+                self.cycle += 1
+            };
             return self.access_memory(address);
         };
 
@@ -257,16 +346,23 @@ impl CPU {
         return self.sum_with_x(zero_page_addr).into();
     }
 
-    fn set_load_status(&mut self, register: &Register) {
-        let target_register = match register {
-            Register::Accumulator => self.accumulator,
-            Register::IndexX => self.index_register_x,
-            Register::IndexY => self.index_register_y,
-        };
+    fn set_load_status(&mut self, register: Registers) {
+        let target_register = self.get_register(register);
 
         self.processor_status.set_zero_flag(target_register == 0);
         self.processor_status
             .set_negative_flag((target_register & 0b10000000) > 1);
+    }
+
+    fn set_cmp_status(&mut self, register: Registers, value: Byte) {
+        let target_register = self.get_register(register);
+
+        self.processor_status
+            .set_carry_flag(target_register >= value);
+        self.processor_status
+            .set_zero_flag(target_register == value);
+        self.processor_status
+            .set_negative_flag(((target_register.wrapping_sub(value)) & 0b10000000) > 1);
     }
 
     fn sum_with_x(&mut self, val: Byte) -> Byte {
@@ -288,8 +384,7 @@ impl CPU {
     fn push_byte_to_stack(&mut self, val: Byte) {
         let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
         self.memory[stack_addr] = val;
-        self.decrement_stack_pointer();
-        self.cycle += 1;
+        self.decrement_register(Registers::StackPointer);
     }
 
     fn push_word_to_stack(&mut self, val: Word) {
@@ -299,9 +394,8 @@ impl CPU {
     }
 
     fn pop_byte_from_stack(&mut self) -> Byte {
-        self.increment_stack_pointer();
+        self.increment_register(Registers::StackPointer);
         let stack_addr: Word = STACK_PAGE_HI | (self.stack_pointer as u16);
-        self.cycle += 1;
         let val = self.memory[stack_addr];
 
         return val;
@@ -348,7 +442,80 @@ impl CPU {
         self.cycle += 1;
     }
 
-    fn get_address(&mut self, addr_mode: &AddressingMode) -> Option<Word> {
+    fn read_memory(&mut self, addr_mode: AddressingMode) -> Option<Byte> {
+        let address = match self.get_address(addr_mode) {
+            Some(address) => address,
+            None => return None,
+        };
+
+        let force_two_cycles = false;
+        let value = match addr_mode {
+            AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_y, force_two_cycles)
+            }
+            AddressingMode::AbsoluteX => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_x, force_two_cycles)
+            }
+            _ => {
+                self.cycle += 1;
+                self.access_memory(address)
+            }
+        };
+
+        return Some(value);
+    }
+
+    fn modify_memory(
+        &mut self,
+        addr_mode: AddressingMode,
+        modification: MemoryModifications,
+    ) -> Option<()> {
+        let address = match self.get_address(addr_mode) {
+            Some(address) => address,
+            None => return None,
+        };
+
+        let force_two_cycles = true;
+        let value = match addr_mode {
+            AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_y, force_two_cycles)
+            }
+            AddressingMode::AbsoluteX => {
+                self.fetch_byte_from_offset_addr(address, self.index_register_x, force_two_cycles)
+            }
+            _ => {
+                self.cycle += 1;
+                self.access_memory(address)
+            }
+        };
+
+        let modified_value = match modification {
+            MemoryModifications::Increment => value.wrapping_add(1),
+            MemoryModifications::Decrement => value.wrapping_sub(1),
+            MemoryModifications::RotateLeft => panic!("rotate left not implemented yet"),
+            MemoryModifications::RotateRight => panic!("rotate right not implemented yet"),
+        };
+        self.cycle += 1;
+
+        self.put_into_memory(address, modified_value);
+        self.cycle += 1;
+
+        return Some(());
+    }
+
+    fn write_memory(&mut self, addr_mode: AddressingMode, value: Byte) -> Option<()> {
+        let address = match self.get_address(addr_mode) {
+            Some(address) => address,
+            None => return None,
+        };
+
+        self.put_into_memory(address, value);
+        self.cycle += 1;
+
+        return Some(());
+    }
+
+    fn get_address(&mut self, addr_mode: AddressingMode) -> Option<Word> {
         match addr_mode {
             AddressingMode::ZeroPage => {
                 return Some(self.fetch_zero_page_address());

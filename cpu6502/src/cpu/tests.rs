@@ -235,6 +235,81 @@ mod fetch_instruction {
 }
 
 #[cfg(test)]
+mod get_register {
+    use super::MemoryMock;
+    use crate::cpu::{Registers, CPU};
+
+    #[test]
+    fn should_return_accumulator() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.accumulator = 0xdf;
+
+        let result = uut.get_register(Registers::Accumulator);
+
+        assert_eq!(result, 0xdf);
+    }
+
+    #[test]
+    fn should_return_index_register_x() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_x = 0xdf;
+
+        let result = uut.get_register(Registers::IndexX);
+
+        assert_eq!(result, 0xdf);
+    }
+
+    #[test]
+    fn should_return_index_register_y() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_y = 0xdf;
+
+        let result = uut.get_register(Registers::IndexY);
+
+        assert_eq!(result, 0xdf);
+    }
+}
+
+#[cfg(test)]
+mod set_register {
+    use super::MemoryMock;
+    use crate::cpu::{Registers, CPU};
+
+    #[test]
+    fn should_set_accumulator() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.accumulator = 0x00;
+
+        let value = 0xf5;
+        uut.set_register(Registers::Accumulator, value);
+
+        assert_eq!(uut.accumulator, 0xf5);
+    }
+
+    #[test]
+    fn should_set_index_register_x() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_x = 0x00;
+
+        let value = 0xf5;
+        uut.set_register(Registers::IndexX, value);
+
+        assert_eq!(uut.index_register_x, 0xf5);
+    }
+
+    #[test]
+    fn should_set_index_register_y() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.index_register_y = 0x00;
+
+        let value = 0xf5;
+        uut.set_register(Registers::IndexY, value);
+
+        assert_eq!(uut.index_register_y, 0xf5);
+    }
+}
+
+#[cfg(test)]
 mod push_byte_to_stack {
     use super::MemoryMock;
     use crate::cpu::CPU;
@@ -404,7 +479,7 @@ mod sum_with_x {
 #[cfg(test)]
 mod set_load_status {
     use super::MemoryMock;
-    use crate::cpu::{Register, CPU};
+    use crate::cpu::{Registers, CPU};
 
     #[test]
     fn should_set_zero_flag_on_processor_status_when_register_is_zero() {
@@ -412,8 +487,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x00;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b00000010);
     }
@@ -424,8 +499,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0xFF;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b11111101);
     }
@@ -436,8 +511,8 @@ mod set_load_status {
         uut.processor_status.flags = 0b00000000;
         uut.accumulator = 0x80;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b10000000);
     }
@@ -448,15 +523,114 @@ mod set_load_status {
         uut.processor_status.flags = 0b11111111;
         uut.accumulator = 0x00;
 
-        let register = Register::Accumulator;
-        uut.set_load_status(&register);
+        let register = Registers::Accumulator;
+        uut.set_load_status(register);
 
         assert_eq!(uut.processor_status.flags, 0b01111111);
     }
 }
 
 #[cfg(test)]
-mod fetch_byte_with_offset {
+mod set_cmp_status {
+    use super::MemoryMock;
+    use crate::cpu::{Registers, CPU};
+
+    #[test]
+    fn should_set_zero_flag_on_processor_status_when_register_is_the_same_as_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd3;
+
+        let value = 0xd3;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_zero_flag(), true);
+    }
+
+    #[test]
+    fn should_clear_zero_flag_on_processor_status_when_register_is_different_as_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000010;
+        uut.accumulator = 0xd5;
+
+        let value = 0xd3;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_zero_flag(), false);
+    }
+
+    #[test]
+    fn should_set_carry_flag_on_processor_status_when_register_is_the_same_as_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd3;
+
+        let value = 0xd3;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_carry_flag(), true);
+    }
+
+    #[test]
+    fn should_set_carry_flag_on_processor_status_when_register_is_bigger_than_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd5;
+
+        let value = 0xd3;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_carry_flag(), true);
+    }
+
+    #[test]
+    fn should_clear_zero_flag_on_processor_status_when_register_is_smaller_than_provided_value() {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000001;
+        uut.accumulator = 0x01;
+
+        let value = 0xd3;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_carry_flag(), false);
+    }
+
+    #[test]
+    fn should_set_negative_flag_on_processor_status_when_difference_with_provided_value_has_most_significant_byte_set(
+    ) {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000000;
+        uut.accumulator = 0xd3;
+
+        let value = 0xd5;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_negative_flag(), true);
+    }
+
+    #[test]
+    fn should_clear_negative_flag_on_processor_status_when_difference_with_provided_value_has_most_significant_byte_clear(
+    ) {
+        let mut uut = CPU::new(Box::new(MemoryMock::default()));
+        uut.processor_status.flags = 0b00000010;
+        uut.accumulator = 0xd5;
+
+        let value = 0xd3;
+        let register = Registers::Accumulator;
+        uut.set_cmp_status(register, value);
+
+        assert_eq!(uut.processor_status.get_negative_flag(), false);
+    }
+}
+
+#[cfg(test)]
+mod fetch_byte_from_offset_addr {
     use super::MemoryMock;
     use crate::{consts::Byte, cpu::CPU};
 
@@ -466,7 +640,8 @@ mod fetch_byte_with_offset {
 
         let addr = 0x0001;
         let offset: Byte = 0x02;
-        let result = uut.fetch_byte_with_offset(addr, offset);
+        let force_two_cycles = false;
+        let result = uut.fetch_byte_from_offset_addr(addr, offset, force_two_cycles);
 
         assert_eq!(result, 0x52);
     }
@@ -478,9 +653,24 @@ mod fetch_byte_with_offset {
 
         let addr = 0x0001;
         let offset: Byte = 0x02;
-        uut.fetch_byte_with_offset(addr, offset);
+        let force_two_cycles = false;
+        let result = uut.fetch_byte_from_offset_addr(addr, offset, force_two_cycles);
 
         assert_eq!(uut.cycle, 1);
+    }
+
+    #[test]
+    fn should_take_two_cycles_when_adding_offset_does_not_cross_page_flip_but_two_cycles_are_forced(
+    ) {
+        let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
+        uut.cycle = 0;
+
+        let addr = 0x0001;
+        let offset: Byte = 0x02;
+        let force_two_cycles = true;
+        let result = uut.fetch_byte_from_offset_addr(addr, offset, force_two_cycles);
+
+        assert_eq!(uut.cycle, 2);
     }
 
     #[test]
@@ -491,7 +681,8 @@ mod fetch_byte_with_offset {
 
         let addr = 0x00FF;
         let offset: Byte = 0x02;
-        let result = uut.fetch_byte_with_offset(addr, offset);
+        let force_two_cycles = false;
+        let result = uut.fetch_byte_from_offset_addr(addr, offset, force_two_cycles);
 
         assert_eq!(result, 0x52);
     }
@@ -505,7 +696,8 @@ mod fetch_byte_with_offset {
 
         let addr = 0x00FF;
         let offset: Byte = 0x02;
-        uut.fetch_byte_with_offset(addr, offset);
+        let force_two_cycles = false;
+        let result = uut.fetch_byte_from_offset_addr(addr, offset, force_two_cycles);
 
         assert_eq!(uut.cycle, 2);
     }
@@ -524,7 +716,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0xCB;
 
-            let result = uut.get_address(&AddressingMode::Immediate);
+            let result = uut.get_address(AddressingMode::Immediate);
 
             assert_eq!(result.unwrap(), 0xCB);
         }
@@ -534,7 +726,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0xCB;
 
-            uut.get_address(&AddressingMode::Immediate);
+            uut.get_address(AddressingMode::Immediate);
 
             assert_eq!(uut.program_counter, 0xCB);
         }
@@ -545,7 +737,7 @@ mod get_address {
             uut.program_counter = 0xCB;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::Immediate);
+            uut.get_address(AddressingMode::Immediate);
 
             assert_eq!(uut.cycle, 0);
         }
@@ -561,7 +753,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x01;
 
-            let result = uut.get_address(&AddressingMode::Absolute);
+            let result = uut.get_address(AddressingMode::Absolute);
 
             assert_eq!(result.unwrap(), 0xCBFF);
         }
@@ -571,7 +763,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x01;
 
-            uut.get_address(&AddressingMode::Absolute);
+            uut.get_address(AddressingMode::Absolute);
 
             assert_eq!(uut.program_counter, 0x03);
         }
@@ -582,7 +774,7 @@ mod get_address {
             uut.program_counter = 0x01;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::Absolute);
+            uut.get_address(AddressingMode::Absolute);
 
             assert_eq!(uut.cycle, 2);
         }
@@ -598,7 +790,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
-            let result = uut.get_address(&AddressingMode::AbsoluteX);
+            let result = uut.get_address(AddressingMode::AbsoluteX);
 
             assert_eq!(result.unwrap(), 0x52CB);
         }
@@ -608,7 +800,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
-            uut.get_address(&AddressingMode::AbsoluteX);
+            uut.get_address(AddressingMode::AbsoluteX);
 
             assert_eq!(uut.program_counter, 0x04);
         }
@@ -619,7 +811,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::AbsoluteX);
+            uut.get_address(AddressingMode::AbsoluteX);
 
             assert_eq!(uut.cycle, 2);
         }
@@ -635,7 +827,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
-            let result = uut.get_address(&AddressingMode::AbsoluteY);
+            let result = uut.get_address(AddressingMode::AbsoluteY);
 
             assert_eq!(result.unwrap(), 0x52CB);
         }
@@ -645,7 +837,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
-            uut.get_address(&AddressingMode::AbsoluteY);
+            uut.get_address(AddressingMode::AbsoluteY);
 
             assert_eq!(uut.program_counter, 0x04);
         }
@@ -656,7 +848,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::AbsoluteY);
+            uut.get_address(AddressingMode::AbsoluteY);
 
             assert_eq!(uut.cycle, 2);
         }
@@ -673,7 +865,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
-            let result = uut.get_address(&AddressingMode::ZeroPage);
+            let result = uut.get_address(AddressingMode::ZeroPage);
 
             assert_eq!(result.unwrap(), 0x00CB);
         }
@@ -683,7 +875,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x03, 0xFF, 0xCB, 0x52])));
             uut.program_counter = 0x02;
 
-            uut.get_address(&AddressingMode::ZeroPage);
+            uut.get_address(AddressingMode::ZeroPage);
 
             assert_eq!(uut.program_counter, 0x03);
         }
@@ -694,7 +886,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::ZeroPage);
+            uut.get_address(AddressingMode::ZeroPage);
 
             assert_eq!(uut.cycle, 1);
         }
@@ -712,7 +904,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.index_register_x = 0x03;
 
-            let result = uut.get_address(&AddressingMode::ZeroPageX);
+            let result = uut.get_address(AddressingMode::ZeroPageX);
 
             assert_eq!(result.unwrap(), 0x00CE);
         }
@@ -723,7 +915,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.index_register_x = 0x03;
 
-            uut.get_address(&AddressingMode::ZeroPageX);
+            uut.get_address(AddressingMode::ZeroPageX);
 
             assert_eq!(uut.program_counter, 0x03);
         }
@@ -735,7 +927,7 @@ mod get_address {
             uut.index_register_x = 0x03;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::ZeroPageX);
+            uut.get_address(AddressingMode::ZeroPageX);
 
             assert_eq!(uut.cycle, 2);
         }
@@ -753,7 +945,7 @@ mod get_address {
             uut.program_counter = 0x03;
             uut.index_register_y = 0x03;
 
-            let result = uut.get_address(&AddressingMode::ZeroPageY);
+            let result = uut.get_address(AddressingMode::ZeroPageY);
 
             assert_eq!(result.unwrap(), 0x0055);
         }
@@ -764,7 +956,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.index_register_y = 0x03;
 
-            uut.get_address(&AddressingMode::ZeroPageY);
+            uut.get_address(AddressingMode::ZeroPageY);
 
             assert_eq!(uut.program_counter, 0x03);
         }
@@ -776,7 +968,7 @@ mod get_address {
             uut.index_register_y = 0x03;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::ZeroPageY);
+            uut.get_address(AddressingMode::ZeroPageY);
 
             assert_eq!(uut.cycle, 2);
         }
@@ -794,7 +986,7 @@ mod get_address {
             uut.program_counter = 0x00;
             uut.index_register_x = 0x01;
 
-            let result = uut.get_address(&AddressingMode::IndexIndirectX);
+            let result = uut.get_address(AddressingMode::IndexIndirectX);
 
             assert_eq!(result.unwrap(), 0xDD03);
         }
@@ -805,7 +997,7 @@ mod get_address {
             uut.program_counter = 0x00;
             uut.index_register_x = 0x01;
 
-            uut.get_address(&AddressingMode::IndexIndirectX);
+            uut.get_address(AddressingMode::IndexIndirectX);
 
             assert_eq!(uut.program_counter, 0x01);
         }
@@ -817,7 +1009,7 @@ mod get_address {
             uut.index_register_x = 0x01;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::IndexIndirectX);
+            uut.get_address(AddressingMode::IndexIndirectX);
 
             assert_eq!(uut.cycle, 4);
         }
@@ -834,7 +1026,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0xFF, 0x03, 0xDD, 0x25])));
             uut.program_counter = 0x00;
 
-            let result = uut.get_address(&AddressingMode::IndirectIndexY);
+            let result = uut.get_address(AddressingMode::IndirectIndexY);
 
             assert_eq!(result.unwrap(), 0xDD03);
         }
@@ -844,7 +1036,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0xFF, 0x03, 0xDD, 0x25])));
             uut.program_counter = 0x00;
 
-            uut.get_address(&AddressingMode::IndirectIndexY);
+            uut.get_address(AddressingMode::IndirectIndexY);
 
             assert_eq!(uut.program_counter, 0x01);
         }
@@ -855,7 +1047,7 @@ mod get_address {
             uut.program_counter = 0x00;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::IndirectIndexY);
+            uut.get_address(AddressingMode::IndirectIndexY);
 
             assert_eq!(uut.cycle, 3);
         }
@@ -872,7 +1064,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
-            let result = uut.get_address(&AddressingMode::Indirect);
+            let result = uut.get_address(AddressingMode::Indirect);
 
             assert_eq!(result.unwrap(), 0x0001);
         }
@@ -882,7 +1074,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
-            uut.get_address(&AddressingMode::Indirect);
+            uut.get_address(AddressingMode::Indirect);
 
             assert_eq!(uut.program_counter, 0x02);
         }
@@ -893,7 +1085,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::Indirect);
+            uut.get_address(AddressingMode::Indirect);
 
             assert_eq!(uut.cycle, 4);
         }
@@ -904,7 +1096,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0xFF, 0x00, 0x04, 0x00])));
             uut.program_counter = 0x00;
 
-            let result = uut.get_address(&AddressingMode::Indirect);
+            let result = uut.get_address(AddressingMode::Indirect);
 
             assert_eq!(result.unwrap(), 0xFF00);
         }
@@ -920,7 +1112,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
-            let result = uut.get_address(&AddressingMode::Implicit);
+            let result = uut.get_address(AddressingMode::Implicit);
 
             assert_eq!(result.is_none(), true);
         }
@@ -930,7 +1122,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
-            uut.get_address(&AddressingMode::Implicit);
+            uut.get_address(AddressingMode::Implicit);
 
             assert_eq!(uut.program_counter, 0x00);
         }
@@ -941,7 +1133,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::Implicit);
+            uut.get_address(AddressingMode::Implicit);
 
             assert_eq!(uut.cycle, 0);
         }
@@ -957,7 +1149,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
-            let result = uut.get_address(&AddressingMode::Relative);
+            let result = uut.get_address(AddressingMode::Relative);
 
             assert_eq!(result.is_none(), true);
         }
@@ -967,7 +1159,7 @@ mod get_address {
             let mut uut = CPU::new(Box::new(MemoryMock::new(&[0x02, 0x00, 0x01, 0x00])));
             uut.program_counter = 0x00;
 
-            uut.get_address(&AddressingMode::Relative);
+            uut.get_address(AddressingMode::Relative);
 
             assert_eq!(uut.program_counter, 0x00);
         }
@@ -978,7 +1170,7 @@ mod get_address {
             uut.program_counter = 0x02;
             uut.cycle = 0;
 
-            uut.get_address(&AddressingMode::Relative);
+            uut.get_address(AddressingMode::Relative);
 
             assert_eq!(uut.cycle, 0);
         }
