@@ -216,12 +216,45 @@ pub fn cpy_a(cpu: &mut CPU) {
     compare(cpu, AddressingMode::Absolute, Registers::IndexY);
 }
 
+fn decrement_register(cpu: &mut CPU, register: Registers) {
+    match register {
+        Registers::IndexX | Registers::IndexY => {
+            cpu.decrement_register(register);
+        }
+        _ => panic!("decrement_register used with incorrect register"),
+    }
+}
+
+pub fn dec_zp(cpu: &mut CPU) {
+    cpu.modify_memory(AddressingMode::ZeroPage, MemoryModifications::Decrement);
+}
+
+pub fn dec_zpx(cpu: &mut CPU) {
+    cpu.modify_memory(AddressingMode::ZeroPageX, MemoryModifications::Decrement);
+}
+
+pub fn dec_a(cpu: &mut CPU) {
+    cpu.modify_memory(AddressingMode::Absolute, MemoryModifications::Decrement);
+}
+
+pub fn dec_a_x(cpu: &mut CPU) {
+    cpu.modify_memory(AddressingMode::AbsoluteX, MemoryModifications::Decrement);
+}
+
+pub fn dex_im(cpu: &mut CPU) {
+    decrement_register(cpu, Registers::IndexX);
+}
+
+pub fn dey_im(cpu: &mut CPU) {
+    decrement_register(cpu, Registers::IndexY);
+}
+
 fn increment_register(cpu: &mut CPU, register: Registers) {
     match register {
         Registers::IndexX | Registers::IndexY => {
             cpu.increment_register(register);
         }
-        _ => panic!("increment used with incorrect register"),
+        _ => panic!("increment_register used with incorrect register"),
     }
 }
 

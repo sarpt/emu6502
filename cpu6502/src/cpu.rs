@@ -54,6 +54,12 @@ const INSTRUCTION_INC_A: Byte = 0xEE;
 const INSTRUCTION_INC_A_X: Byte = 0xFE;
 const INSTRUCTION_INX_IM: Byte = 0xE8;
 const INSTRUCTION_INY_IM: Byte = 0xC8;
+const INSTRUCTION_DEC_ZP: Byte = 0xC6;
+const INSTRUCTION_DEC_ZPX: Byte = 0xD6;
+const INSTRUCTION_DEC_A: Byte = 0xCE;
+const INSTRUCTION_DEC_A_X: Byte = 0xDE;
+const INSTRUCTION_DEX_IM: Byte = 0xCA;
+const INSTRUCTION_DEY_IM: Byte = 0x88;
 
 enum Flags {
     Carry = 0,
@@ -206,6 +212,12 @@ impl CPU {
             (INSTRUCTION_INC_A_X, inc_a_x as OpcodeHandler),
             (INSTRUCTION_INX_IM, inx_im as OpcodeHandler),
             (INSTRUCTION_INY_IM, iny_im as OpcodeHandler),
+            (INSTRUCTION_DEC_ZP, dec_zp as OpcodeHandler),
+            (INSTRUCTION_DEC_ZPX, dec_zpx as OpcodeHandler),
+            (INSTRUCTION_DEC_A, dec_a as OpcodeHandler),
+            (INSTRUCTION_DEC_A_X, dec_a_x as OpcodeHandler),
+            (INSTRUCTION_DEX_IM, dex_im as OpcodeHandler),
+            (INSTRUCTION_DEY_IM, dey_im as OpcodeHandler),
         ]);
 
         return CPU {
