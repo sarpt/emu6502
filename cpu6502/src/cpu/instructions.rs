@@ -103,7 +103,7 @@ pub fn rts(cpu: &mut CPU) {
 }
 
 fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
-    match cpu.get_address(addr_mode) {
+    match cpu.get_address(addr_mode, super::MemoryOperation::Read) {
         Some(address) => cpu.program_counter = address,
         None => panic!("jmp used with incorrect addressing mode"),
     }

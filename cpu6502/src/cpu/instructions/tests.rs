@@ -2179,7 +2179,7 @@ mod increment {
         const ADDR_LO: Byte = 0x02;
         const ADDR_HI: Byte = 0x00;
         const OFFSET: Byte = 0x02;
-        const ADDR_OFFSET_BY_X: Word = 0x0002;
+        const ADDR_OFFSET_BY_X: Word = 0x0004;
 
         #[test]
         fn should_increment_value_stored_in_memory_at_absolute_address_offset_by_index_register_x()
@@ -2192,7 +2192,7 @@ mod increment {
 
             inc_a_x(&mut cpu);
 
-            assert_eq!(cpu.memory[ADDR_OFFSET_BY_X as Word], 0x0A);
+            assert_eq!(cpu.memory[ADDR_OFFSET_BY_X], 0x0A);
         }
 
         #[test]
@@ -2389,7 +2389,7 @@ mod decrement {
         const ADDR_LO: Byte = 0x02;
         const ADDR_HI: Byte = 0x00;
         const OFFSET: Byte = 0x02;
-        const ADDR_OFFSET_BY_X: Word = 0x0002;
+        const ADDR_OFFSET_BY_X: Word = 0x0004;
 
         #[test]
         fn should_decrement_value_stored_in_memory_at_absolute_address_offset_by_index_register_x()
@@ -2402,7 +2402,7 @@ mod decrement {
 
             dec_a_x(&mut cpu);
 
-            assert_eq!(cpu.memory[ADDR_OFFSET_BY_X as Word], 0x08);
+            assert_eq!(cpu.memory[ADDR_OFFSET_BY_X], 0x08);
         }
 
         #[test]
@@ -2550,7 +2550,7 @@ mod store {
         const ADDR_LO: Byte = 0x02;
         const ADDR_HI: Byte = 0x00;
         const OFFSET: Byte = 0x02;
-        const ADDR_OFFSET_BY_X: Word = 0x0002;
+        const ADDR_OFFSET_BY_X: Word = 0x0004;
 
         #[test]
         fn should_store_accumulator_in_memory_at_an_absolute_address_offset_by_index_register_x() {
@@ -2589,7 +2589,7 @@ mod store {
         const ADDR_LO: Byte = 0x02;
         const ADDR_HI: Byte = 0x00;
         const OFFSET: Byte = 0x02;
-        const ADDR_OFFSET_BY_Y: Word = 0x0002;
+        const ADDR_OFFSET_BY_Y: Word = 0x0004;
 
         #[test]
         fn should_store_accumulator_in_memory_at_an_absolute_address_offset_by_index_register_y() {
