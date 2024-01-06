@@ -60,6 +60,19 @@ const INSTRUCTION_DEC_A: Byte = 0xCE;
 const INSTRUCTION_DEC_A_X: Byte = 0xDE;
 const INSTRUCTION_DEX_IM: Byte = 0xCA;
 const INSTRUCTION_DEY_IM: Byte = 0x88;
+const INSTRUCTION_STA_ZP: Byte = 0x85;
+const INSTRUCTION_STA_ZPX: Byte = 0x95;
+const INSTRUCTION_STA_A: Byte = 0x8D;
+const INSTRUCTION_STA_A_X: Byte = 0x9D;
+const INSTRUCTION_STA_A_Y: Byte = 0x99;
+const INSTRUCTION_STA_IN_X: Byte = 0x81;
+const INSTRUCTION_STA_IN_Y: Byte = 0x91;
+const INSTRUCTION_STX_ZP: Byte = 0x86;
+const INSTRUCTION_STX_ZPY: Byte = 0x96;
+const INSTRUCTION_STX_A: Byte = 0x8E;
+const INSTRUCTION_STY_ZP: Byte = 0x84;
+const INSTRUCTION_STY_ZPX: Byte = 0x94;
+const INSTRUCTION_STY_A: Byte = 0x8C;
 
 enum Flags {
     Carry = 0,
@@ -218,6 +231,19 @@ impl CPU {
             (INSTRUCTION_DEC_A_X, dec_a_x as OpcodeHandler),
             (INSTRUCTION_DEX_IM, dex_im as OpcodeHandler),
             (INSTRUCTION_DEY_IM, dey_im as OpcodeHandler),
+            (INSTRUCTION_STA_ZP, sta_zp as OpcodeHandler),
+            (INSTRUCTION_STA_ZPX, sta_zpx as OpcodeHandler),
+            (INSTRUCTION_STA_A, sta_a as OpcodeHandler),
+            (INSTRUCTION_STA_A_X, sta_a_x as OpcodeHandler),
+            (INSTRUCTION_STA_A_Y, sta_a_y as OpcodeHandler),
+            (INSTRUCTION_STA_IN_X, sta_in_x as OpcodeHandler),
+            (INSTRUCTION_STA_IN_Y, sta_in_y as OpcodeHandler),
+            (INSTRUCTION_STX_ZP, stx_zp as OpcodeHandler),
+            (INSTRUCTION_STX_ZPY, stx_zpy as OpcodeHandler),
+            (INSTRUCTION_STX_A, stx_a as OpcodeHandler),
+            (INSTRUCTION_STY_ZP, sty_zp as OpcodeHandler),
+            (INSTRUCTION_STY_ZPX, sty_zpx as OpcodeHandler),
+            (INSTRUCTION_STY_A, sty_a as OpcodeHandler),
         ]);
 
         return CPU {
@@ -516,10 +542,22 @@ impl CPU {
     }
 
     fn write_memory(&mut self, addr_mode: AddressingMode, value: Byte) -> Option<()> {
-        let address = match self.get_address(addr_mode) {
+        let mut address = match self.get_address(addr_mode) {
             Some(address) => address,
             None => return None,
         };
+
+        // dummy read from an address when fixing the address takes a cycle
+        match addr_mode {
+            AddressingMode::AbsoluteY | AddressingMode::AbsoluteX => {
+                self.cycle += 1;
+            }
+            AddressingMode::IndirectIndexY => {
+                address = address.wrapping_add(self.index_register_y.into());
+                self.cycle += 1;
+            }
+            _ => {}
+        }
 
         self.put_into_memory(address, value);
         self.cycle += 1;
