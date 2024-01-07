@@ -60,6 +60,19 @@ const INSTRUCTION_DEC_A: Byte = 0xCE;
 const INSTRUCTION_DEC_A_X: Byte = 0xDE;
 const INSTRUCTION_DEX_IM: Byte = 0xCA;
 const INSTRUCTION_DEY_IM: Byte = 0x88;
+const INSTRUCTION_STA_ZP: Byte = 0x85;
+const INSTRUCTION_STA_ZPX: Byte = 0x95;
+const INSTRUCTION_STA_A: Byte = 0x8D;
+const INSTRUCTION_STA_A_X: Byte = 0x9D;
+const INSTRUCTION_STA_A_Y: Byte = 0x99;
+const INSTRUCTION_STA_IN_X: Byte = 0x81;
+const INSTRUCTION_STA_IN_Y: Byte = 0x91;
+const INSTRUCTION_STX_ZP: Byte = 0x86;
+const INSTRUCTION_STX_ZPY: Byte = 0x96;
+const INSTRUCTION_STX_A: Byte = 0x8E;
+const INSTRUCTION_STY_ZP: Byte = 0x84;
+const INSTRUCTION_STY_ZPX: Byte = 0x94;
+const INSTRUCTION_STY_A: Byte = 0x8C;
 
 enum Flags {
     Carry = 0,
@@ -72,7 +85,7 @@ struct ProcessorStatus {
     flags: Byte,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 enum AddressingMode {
     Immediate,
     Indirect,
@@ -103,6 +116,13 @@ enum MemoryModifications {
     Decrement,
     RotateLeft,
     RotateRight,
+}
+
+#[derive(Copy, Clone, PartialEq)]
+enum MemoryOperation {
+    Read,
+    Modify,
+    Write,
 }
 
 impl ProcessorStatus {
@@ -218,6 +238,19 @@ impl CPU {
             (INSTRUCTION_DEC_A_X, dec_a_x as OpcodeHandler),
             (INSTRUCTION_DEX_IM, dex_im as OpcodeHandler),
             (INSTRUCTION_DEY_IM, dey_im as OpcodeHandler),
+            (INSTRUCTION_STA_ZP, sta_zp as OpcodeHandler),
+            (INSTRUCTION_STA_ZPX, sta_zpx as OpcodeHandler),
+            (INSTRUCTION_STA_A, sta_a as OpcodeHandler),
+            (INSTRUCTION_STA_A_X, sta_a_x as OpcodeHandler),
+            (INSTRUCTION_STA_A_Y, sta_a_y as OpcodeHandler),
+            (INSTRUCTION_STA_IN_X, sta_in_x as OpcodeHandler),
+            (INSTRUCTION_STA_IN_Y, sta_in_y as OpcodeHandler),
+            (INSTRUCTION_STX_ZP, stx_zp as OpcodeHandler),
+            (INSTRUCTION_STX_ZPY, stx_zpy as OpcodeHandler),
+            (INSTRUCTION_STX_A, stx_a as OpcodeHandler),
+            (INSTRUCTION_STY_ZP, sty_zp as OpcodeHandler),
+            (INSTRUCTION_STY_ZPX, sty_zpx as OpcodeHandler),
+            (INSTRUCTION_STY_A, sty_a as OpcodeHandler),
         ]);
 
         return CPU {
@@ -286,27 +319,24 @@ impl CPU {
         };
     }
 
-    fn fetch_byte_from_offset_addr(
-        &mut self,
-        addr: Word,
-        offset: Byte,
-        force_two_cycles: bool,
-    ) -> Byte {
+    fn offset_addr(&mut self, addr: Word, offset: Byte, operation: MemoryOperation) -> Word {
         let [lo, mut hi] = addr.to_le_bytes();
         let (new_lo, carry) = lo.overflowing_add(offset);
         let mut address = Word::from_le_bytes([new_lo, hi]);
         self.cycle += 1;
+
         if !carry {
-            if force_two_cycles {
+            if operation != MemoryOperation::Read {
                 self.cycle += 1
             };
-            return self.access_memory(address);
+            return address;
         };
 
         hi = hi.wrapping_add(1);
         address = ((hi as u16) << 8) | new_lo as u16;
         self.cycle += 1;
-        return self.access_memory(address);
+
+        return address;
     }
 
     fn fetch_instruction(&mut self) -> Instruction {
@@ -455,24 +485,15 @@ impl CPU {
     }
 
     fn read_memory(&mut self, addr_mode: AddressingMode) -> Option<Byte> {
-        let address = match self.get_address(addr_mode) {
+        let address = match self.get_address(addr_mode, MemoryOperation::Read) {
             Some(address) => address,
             None => return None,
         };
 
-        let force_two_cycles = false;
-        let value = match addr_mode {
-            AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
-                self.fetch_byte_from_offset_addr(address, self.index_register_y, force_two_cycles)
-            }
-            AddressingMode::AbsoluteX => {
-                self.fetch_byte_from_offset_addr(address, self.index_register_x, force_two_cycles)
-            }
-            _ => {
-                self.cycle += 1;
-                self.access_memory(address)
-            }
-        };
+        let value = self.access_memory(address);
+        if !addressing_takes_extra_cycle_to_fix(addr_mode) {
+            self.cycle += 1;
+        }
 
         return Some(value);
     }
@@ -482,24 +503,15 @@ impl CPU {
         addr_mode: AddressingMode,
         modification: MemoryModifications,
     ) -> Option<()> {
-        let address = match self.get_address(addr_mode) {
+        let address = match self.get_address(addr_mode, MemoryOperation::Modify) {
             Some(address) => address,
             None => return None,
         };
 
-        let force_two_cycles = true;
-        let value = match addr_mode {
-            AddressingMode::AbsoluteY | AddressingMode::IndirectIndexY => {
-                self.fetch_byte_from_offset_addr(address, self.index_register_y, force_two_cycles)
-            }
-            AddressingMode::AbsoluteX => {
-                self.fetch_byte_from_offset_addr(address, self.index_register_x, force_two_cycles)
-            }
-            _ => {
-                self.cycle += 1;
-                self.access_memory(address)
-            }
-        };
+        let value = self.access_memory(address);
+        if !addressing_takes_extra_cycle_to_fix(addr_mode) {
+            self.cycle += 1;
+        }
 
         let modified_value = match modification {
             MemoryModifications::Increment => value.wrapping_add(1),
@@ -516,29 +528,40 @@ impl CPU {
     }
 
     fn write_memory(&mut self, addr_mode: AddressingMode, value: Byte) -> Option<()> {
-        let address = match self.get_address(addr_mode) {
+        let address = match self.get_address(addr_mode, MemoryOperation::Write) {
             Some(address) => address,
             None => return None,
         };
 
         self.put_into_memory(address, value);
-        self.cycle += 1;
+        if !addressing_takes_extra_cycle_to_fix(addr_mode) {
+            self.cycle += 1;
+        }
 
         return Some(());
     }
 
-    fn get_address(&mut self, addr_mode: AddressingMode) -> Option<Word> {
+    fn get_address(
+        &mut self,
+        addr_mode: AddressingMode,
+        operation: MemoryOperation,
+    ) -> Option<Word> {
         match addr_mode {
             AddressingMode::ZeroPage => {
                 return Some(self.fetch_zero_page_address());
             }
             AddressingMode::IndexIndirectX => {
                 let address = self.fetch_zero_page_address_with_x_offset();
-                return Some(self.fetch_address_from(address));
+                let effective_address = self.fetch_address_from(address);
+
+                return Some(effective_address);
             }
             AddressingMode::IndirectIndexY => {
                 let address = self.fetch_zero_page_address();
-                return Some(self.fetch_address_from(address));
+                let partial = self.fetch_address_from(address);
+                let effective_address = self.offset_addr(partial, self.index_register_y, operation);
+
+                return Some(effective_address);
             }
             AddressingMode::ZeroPageY => {
                 return Some(self.fetch_zero_page_address_with_y_offset());
@@ -546,8 +569,18 @@ impl CPU {
             AddressingMode::ZeroPageX => {
                 return Some(self.fetch_zero_page_address_with_x_offset());
             }
-            AddressingMode::Absolute | AddressingMode::AbsoluteX | AddressingMode::AbsoluteY => {
+            AddressingMode::Absolute => {
                 return Some(self.fetch_address());
+            }
+            AddressingMode::AbsoluteX => {
+                let partial = self.fetch_address();
+                let effective_addr = self.offset_addr(partial, self.index_register_x, operation);
+                return Some(effective_addr);
+            }
+            AddressingMode::AbsoluteY => {
+                let partial = self.fetch_address();
+                let effective_addr = self.offset_addr(partial, self.index_register_y, operation);
+                return Some(effective_addr);
             }
             AddressingMode::Indirect => {
                 let address = self.fetch_address();
@@ -584,6 +617,12 @@ impl CPU {
 
         return stop_cycle;
     }
+}
+
+fn addressing_takes_extra_cycle_to_fix(addr_mode: AddressingMode) -> bool {
+    return addr_mode == AddressingMode::AbsoluteX
+        || addr_mode == AddressingMode::AbsoluteY
+        || addr_mode == AddressingMode::IndirectIndexY;
 }
 
 #[cfg(test)]

@@ -103,7 +103,7 @@ pub fn rts(cpu: &mut CPU) {
 }
 
 fn jmp(cpu: &mut CPU, addr_mode: AddressingMode) {
-    match cpu.get_address(addr_mode) {
+    match cpu.get_address(addr_mode, super::MemoryOperation::Read) {
         Some(address) => cpu.program_counter = address,
         None => panic!("jmp used with incorrect addressing mode"),
     }
@@ -280,6 +280,66 @@ pub fn inx_im(cpu: &mut CPU) {
 
 pub fn iny_im(cpu: &mut CPU) {
     increment_register(cpu, Registers::IndexY);
+}
+
+pub fn store(cpu: &mut CPU, addr_mode: AddressingMode, register: Registers) {
+    let value = cpu.get_register(register);
+    match cpu.write_memory(addr_mode, value) {
+        Some(()) => (),
+        None => panic!("store_in_memory used with incorrect address mode"),
+    }
+}
+
+pub fn sta_zp(cpu: &mut CPU) {
+    store(cpu, AddressingMode::ZeroPage, Registers::Accumulator);
+}
+
+pub fn sta_zpx(cpu: &mut CPU) {
+    store(cpu, AddressingMode::ZeroPageX, Registers::Accumulator);
+}
+
+pub fn sta_a(cpu: &mut CPU) {
+    store(cpu, AddressingMode::Absolute, Registers::Accumulator);
+}
+
+pub fn sta_a_x(cpu: &mut CPU) {
+    store(cpu, AddressingMode::AbsoluteX, Registers::Accumulator);
+}
+
+pub fn sta_a_y(cpu: &mut CPU) {
+    store(cpu, AddressingMode::AbsoluteY, Registers::Accumulator);
+}
+
+pub fn sta_in_x(cpu: &mut CPU) {
+    store(cpu, AddressingMode::IndexIndirectX, Registers::Accumulator);
+}
+
+pub fn sta_in_y(cpu: &mut CPU) {
+    store(cpu, AddressingMode::IndirectIndexY, Registers::Accumulator);
+}
+
+pub fn stx_zp(cpu: &mut CPU) {
+    store(cpu, AddressingMode::ZeroPage, Registers::IndexX);
+}
+
+pub fn stx_zpy(cpu: &mut CPU) {
+    store(cpu, AddressingMode::ZeroPageY, Registers::IndexX);
+}
+
+pub fn stx_a(cpu: &mut CPU) {
+    store(cpu, AddressingMode::Absolute, Registers::IndexX);
+}
+
+pub fn sty_zp(cpu: &mut CPU) {
+    store(cpu, AddressingMode::ZeroPage, Registers::IndexY);
+}
+
+pub fn sty_zpx(cpu: &mut CPU) {
+    store(cpu, AddressingMode::ZeroPageX, Registers::IndexY);
+}
+
+pub fn sty_a(cpu: &mut CPU) {
+    store(cpu, AddressingMode::Absolute, Registers::IndexY);
 }
 
 #[cfg(test)]
